@@ -22,21 +22,17 @@
 @version 1.0.0 07/24/2017
 """
 
-import serial
-import time
-from cobs import cobs
-import cbor2
-import struct
-import sys
+import serial #To enable the serial communication.
+import time #This is needed to sleep the system after a big data package is send, if not information could get lost.
+from cobs import cobs #To decode using COBS.
+import cbor2 #To decode using CBOR.
+import struct #To store the information of a float in a byte array.
+import sys #To distinguish between Big and Little Endian systems. 
 
-#Include a part that can read if the entered dict is accoridng the specifications we want. 
-
-#s = serial.Serial('/dev/ttyACM0', 115200) # Namen ggf. anpassen
-#time.sleep(0) # der Arduino resettet nach einer Seriellen Verbindung, daher muss kurz gewartet werden (sleep nimmt als Eingabe Sekunden)
-
-
-#liefert einen bytearray der in COBS codierten Daten.
-#Wird gebrucht als Hilfsfunktion für tobiSender
+#Encodes data using the COBS algorithm.
+#The parameter data is the data that should be decoded. x is a String that determines wether the data is already 
+#decoded with CBOR or not.
+#Returns a bytearray with the decoded data.
 def encodeWithCobs(data,x):
 	#distinguish between CBOR and without CBOR
 	if x=='withCBOR':
@@ -44,62 +40,57 @@ def encodeWithCobs(data,x):
 	else:
 		return bytearray(cobs.encode(bytearray(data))+b'\x00')
 
-
-#sendet jegliche Art von Daten mit CBOR und COBS. Die Parameter sind die Daten die gesendet werden sollen.
-#Weiterer Parameter ist der serielle Port über den die Daten gesendet werden sollen. 
+#Checks if the given data is a dict with length 255 or less. If it is then all floating point numbers are changed to byte 
+#arrays of length four. Furthermore it is distinguished between Little and Big Endian systems. The data is send over the serial
+#port serialPort.
+#dictToEncode is the dict which should be encoded.
+#serialPort is the serial port over which the data should be send.
 def sendData(dictToEncode,serialPort):
-	"""
-	s = serial.Serial(serialPort,baudrate)
-	#check if the serial port is open
-	if not s.isOpen:
-		#if it is not open, open it
-		s.open()
-		time.sleep(1)
-	"""
+	#Determine the length of the data package.
 	encodedLength=len(encodeWithCobs(cbor2.dumps(dictToEncode),'withCBOR'))
-	#Ueberpruefe, ob das Datenpaket nicht zu groß ist.
+	#checks if the data package is too big.
 	if encodedLength < 255:
-		#Diese Teil wird nur ausgeführt, falls es sich um ein dict mit floats handelt.
+		#Checks the type of the data package, only dicts are allowed.
 		if type(dictToEncode) is dict:
-			#Wandelt alle floats in die zugehörigen bytearrays um, amkes a distinction between big endian and little endian machines
-			#little endian
+			#Checks the architecture of the System.
+			#if Little Endian.
 			if sys.byteorder == 'little':
+				#Converts floats to bytearrays.
 				for x in dictToEncode:
 					value = dictToEncode[x]
-					#changes all the floats to byte arrays
 					if type(value) is float:
 						dictToEncode[x]=bytearray(struct.pack('f',value))
-			#big endian
+			#if Big Endian.
 			elif sys.byteorder == 'big':
 				for x in dictToEncode:
 					value = dictToEncode[x]
-					#changes all the floats to byte arrays with a reversed byte order
+					#changes all the floats to byte arrays with a reversed byte order, because 
+					#the Arduino uses Little Endian
 					if type(value) is float:
 						floatBytes=bytearray(struct.pack('f',value))
 						floatBytes.reverse()
 						dictToEncode[x]=floatBytes
-		#sendet die Daten.
+		#Sends the data over the specified serial port.
 		serialPort.write(encodeWithCobs(cbor2.dumps(dictToEncode),'withCBOR'))
-		#Ueberpruefe, ob nach dem Senden der Daten eine Pause gemacht werden muss, damit der serielle Buffer vom Arduino nicht voll wird.
+		#If the data package is bigger than 100 bytes information could get lost, 
+		#beause the Arduino only has a 64 Byte Serial Buffer.
 		if encodedLength > 100:
-			time.sleep(encodedLength/1200) #1200 für eine Baudraute von 115200
+			#The number 1200 was obtained via trial and error. By looking which sizes of data packages could still
+			#be sent wothout loss of information.
+			time.sleep(encodedLength/1200)
+	#Let's the user know if the data package is too big.
 	else:
-		print("Data Package is larger than 256 bytes.")
-		print()
+		print("Data Package is larger than 255 bytes.","\n")
 
-#Ist irgendwie noch verbugged. Printet die Daten nicht korrekt. Aber sendet sie korrekt.
-#Sends the given data with the help of tobiSender to the specified serial port.
-#Prints the encoded data and the length of the encoded data to the terminal.
+#Still a bit buggy. Sends the data correctly but doesn't print it correctly. 
+#Should print the encoded data and the length of the encoded data to the terminal.
 def sendAndPrintData(dataToSend,serialPort):
 	#decods the data using CBOR and then COBS
 	encodedData=encodeWithCobs(cbor2.dumps(dataToSend),'withCBOR')
-	print()
 	#Prints the encoded form of the data in hexa decimal.
-	print("Die mit COBS und CBOR decodierten bytes sind:",encodedData)
-	print()
+	print("Die mit COBS und CBOR decodierten bytes sind:",encodedData,"\n")
 	#Prints the number of bytes in the encoded data package.
-	print("Die Größe des codierten Datenpakets ist:",len(encodedData))
-	print()
+	print("Die Größe des codierten Datenpakets ist:",len(encodedData),"\n")
 	#Sends the data.
 	sendData(dataToSend,serialPort)
 
