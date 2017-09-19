@@ -1,5 +1,3 @@
-#!/home/tobias/anaconda3/bin/python3.6
-
 from arduino_python_communication_v2 import *
 import unittest
 
