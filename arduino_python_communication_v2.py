@@ -45,18 +45,39 @@ def encodeWithCobs(data,x):
 		return bytearray(cobs.encode(bytearray(data))+b'\x00')
 
 
+"""
+The function to send data to the Arduino. Only maps with length (number of bytes in the encoded form) 
+with 255 or shorter can be send. Furthermore errors are raised when the data that should be send doesn't go hand in hand 
+with the programm on the Arduino. If no error was raised sendIntData returns True, the data is encoded with COBS and CBOR
+and send over serial communication to the Arduino where it is processed. 
+When data package with a length (number of bytes) of 100 or greater are given to function a sleep-statement is activitated 
+because the serial buffer of the Arduino is too small.
 
+@param dictToEncode
+	The dict that should be send to the Arduino, it can only hold the keys from 0 to 9.
+@param serialPort
+	The serial port over which the data should be send. It must be initialized before this function is called.
+@return 
+	Returns True if everything was successfully send.
+"""
 def sendIntData(dictToEncode,serialPort):
+	
 	encodedLength=len(encodeWithCobs(cbor2.dumps(dictToEncode),'withCBOR'))
+	
+	#Checks the length of the data package
 	if encodedLength > 256:
 		raise OverflowError("The length of the encoded data package is larger than 255 bytes.")
-
+	
+	#Checks if a dict is given.
 	if not type(dictToEncode) is dict:
 		raise TypeError("The data to encode must be of type dict.")
-
+	
+	#Local variables which are set to True if all the keys and values in the map fullfill the following properties:
+	# - Keys must be ints, greater or equql zero and smaller than 10.
+	# - Values must be ints, greater or equal zero and smaller than 4294967295.
 	keyFlag=True
 	valueFlag=True
-
+	
 	for key,value in dictToEncode.items():
 		keyFlag=keyFlag and (type(key) is int) and (key >= 0) and (key < 10)
 		valueFlag=valueFlag and (type(value) is int) and (value >= 0) and (value <= 4294967295)
@@ -66,25 +87,32 @@ def sendIntData(dictToEncode,serialPort):
 
 	if not valueFlag:
 		raise ValueError("All values in the dict must be of type int, larger than 0 and smaller than 4294967295.")
-
+	
+	#An input must be passed in each loop.
 	if not 0 in dictToEncode:
 		raise KeyError("An input must be passed each cycle with the key 0.")
-
+	
+	#The upper and lower output limits must be passed together.
 	if (4 in dictToEncode and not 5 in dictToEncode) or (5 in dictToEncode and not 4 in dictToEncode):
 		raise KeyError("Upper and lower output limits must be passed together.")
-
+	
+	#The lower output limit must be smaller than the upper output limit.
 	elif 4 in dictToEncode and 5 in dictToEncode:
 		if dictToEncode[4] >= dictToEncode[5]:
 			raise ValueError("The upper output limit must be greater than the lower output limit.")
-
+	
+	#Only the values 0 or 1 can be passed as mode.
 	if 6 in dictToEncode and not(dictToEncode[6]==0 or dictToEncode[6]==1):
 		raise ValueError("The mode (key 6) must be either 0 for MANUAL or 1 for AUTOMATIC.")
-
+	
+	#Only the values 0 or 1 can be passed as direction.
 	if 8 in dictToEncode and not(dictToEncode[8]==0 or dictToEncode[8]==1):
 		raise ValueError("The direction must be either 0 for DIRECT or 1 for REVERSE.")
-
+	
+	#If no error was raised send the data.
 	serialPort.write(encodeWithCobs(cbor2.dumps(dictToEncode),'withCBOR'))
 	
+	#If the package is too big a delay has to be implemented.
 	if encodedLength >= 100:
 		time.sleep(encodedLength/1200)
 	return True
