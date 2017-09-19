@@ -1,6 +1,6 @@
 #!/home/tobias/anaconda3/bin/python3.6
 
-from arduino_python_communication_17_09_2017 import *
+from arduino_python_communication_v2 import *
 import unittest
 
 #defines the serial port for the Arduino Due, if a Nano is used ACM must be changed to USB
