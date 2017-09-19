@@ -12,12 +12,12 @@ sampleTime=100
 #Set the conservative parameters to let the controller slowly reach the setpoint. 
 kp=8.0
 ki=0.05
-kd=50000.0
+kd=50.0
 
 #More aggressive parameters to keep the setpoint.
 kp2=30.0
 ki2=0.3
-kd2=50000.0
+kd2=500.0
 
 #The Temperature in C at which the temperature should be changed
 temperatureToChangeParameters=30.0
