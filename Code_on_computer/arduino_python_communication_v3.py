@@ -48,7 +48,7 @@ controllerIsActive=True
 #Needed for the connection to the temperature bricklet.
 HOST="localhost"
 PORT=4223
-UID="zih"
+UID="zHg"
 #UID="zFZ" #UID for the currently used sensor.
 #UID="zih" #UID for the other sensor
 
