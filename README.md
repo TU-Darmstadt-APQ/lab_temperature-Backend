@@ -1,16 +1,6 @@
 # lab_temperature-Backend
-Lab Temperature Controller (Python Code)
-
-- arduino_python_communication.ino:
-	 
-	This part contains the software for the Arduino consisting of an PID controller and a part for serial communication implemented with COBS and CBOR as en- and decoding method. The decoding is achived with the cobs.4-library by
-	Patrick  Baus and Arduino-Cbor-master library. The PID controller is realized with the PID library by Brett Beauregard.  
-
-- arduino_python_communication.py:
+This is the code that should be run on a computer (in our case it is a Raspberry Pi) to communicate with the microcontroller. The basic tool to communicate with the controller is the function sendIntData() in the file arduino_python_communication_v3.py. This function takes a dict as an arguement. This dict should only contain keys from 0 to 10, if this is not the case an error will be thrwon. Each key is associated with a specfific value for the PID controller:
 	
-	This part consists of a an encoder for dicts and other data called sendData(...), this function encodes data using COBS and CBOR. To dispatch data to the PID controller the following format is used. The keys consist of the ints
-	0 to 9. Each int represents different parameters and variables for the PID controller:
-		
 		-0: The temperature given to controller as Input, datatype double.
 		-1: The Parameter Kp representing the proportional part of the controller, datatype double.
         -2: The Parameter Ki representing the integral part of the controller, datatype double.
@@ -21,5 +11,7 @@ Lab Temperature Controller (Python Code)
 		-7: Set the sample time of the controller, default is 200 ms (value: 200), data type is int.
 		-8: Controller direction is either DIRECT or REVERSE, the value send is eihter 0 (DIRECT) or 1 (REVERSE), the default is DIRECT, datatype is int.
 		-9: The setpoint which should be achieved by the controller, datatype is double.
+		-10: Output value for the controller. One can only write an output value when the controller mode (key 6) is set to MANUAL.
 
-The hardware part of which the controller consits are a Raspberry Pi, Arduino Due, Tinkerforge Temperature Brick and a Peltier module (at the moment).
+One should keep in mind that the datatype for the values in the dict are very important, if you have a wrong datatype an error will be thrown.
+The file recieve_data.py is an example of how the communication could look like. In this file the temperature data is taken from a Tinkerforge temperature bricklet that is connected to the Pi via a Masterbrick. The settings of the controller are saved in a log-file together with the temperature, the output and the time. All of these value a send from microcontroller to the Pi and are decoded via COBS and CBOR.

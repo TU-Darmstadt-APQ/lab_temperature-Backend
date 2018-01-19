@@ -10,6 +10,7 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 #Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
 #when there are changes in the input.
 
+
 s = serial.Serial('/dev/ttyACM0',115200)
 #check if the serial port is open
 if not s.isOpen:
@@ -27,7 +28,7 @@ fileToWrite.write("The following data is the temperature of the Metallklotz. The
 fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(kp)+", ki: "+str(ki)+", kd: "+str(kd)+", setpoint: "+str(setPoint)+" ,sample time: "+str(sampleTime)+" ms"+"\n\n")
 
 if __name__ == "__main__":
-
+        
         #to build the cnnection to the bricklet.
         ipcon = IPConnection()
 
@@ -99,8 +100,6 @@ if __name__ == "__main__":
                                         data = data + recievedByte
                 
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-                time.sleep(sampleTime/1000) 
-
-        ipcon.disconnect()
+                time.sleep(sampleTime/1000)
 
 fileToWrite.close()

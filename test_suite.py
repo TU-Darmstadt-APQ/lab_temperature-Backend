@@ -4,7 +4,7 @@ import arduino_python_communication_v3 as apc
 import unittest
 
 #defines the serial port for the Arduino Due, if a Nano is used ACM must be changed to USB
-s = apc.serial.Serial('/dev/ttyUSB0',115200)
+s = apc.serial.Serial('/dev/ttyACM0',115200)
 #check if the serial port is open
 if not s.isOpen:
         #if it is not open, open it
