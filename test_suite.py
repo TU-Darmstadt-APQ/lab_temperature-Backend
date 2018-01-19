@@ -1,4 +1,4 @@
-#!/home/tobias/anaconda3/bin/python3.6
+#!/usr/bin/python3
 
 import arduino_python_communication_v3 as apc
 import unittest
