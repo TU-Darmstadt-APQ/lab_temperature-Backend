@@ -13,5 +13,5 @@ This is the code that should be run on a computer (in our case it is a Raspberry
 		-9: The setpoint which should be achieved by the controller, datatype is double.
 		-10: Output value for the controller. One can only write an output value when the controller mode (key 6) is set to MANUAL.
 
-One should keep in mind that the datatype for the values in the dict are very important, if you have a wrong datatype an error will be thrown.
+One should keep in mind that the datatypes for the values in the dict are very important, if you have a wrong datatype an error will be thrown.
 The file recieve_data.py is an example of how the communication could look like. In this file the temperature data is taken from a Tinkerforge temperature bricklet that is connected to the Pi via a Masterbrick. The settings of the controller are saved in a log-file together with the temperature, the output and the time. All of these value a send from microcontroller to the Pi and are decoded via COBS and CBOR.
