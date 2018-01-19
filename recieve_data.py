@@ -20,7 +20,7 @@ if not s.isOpen:
 time.sleep(2) #for Arduino Nano/Uno wait 2 s for Due 1 s is okay.
 
 #Send the main settings to the controller.
-sendIntData({0:22.0,1:kp,2:ki,3:kd,6:1,7:sampleTime,8:1,9:setPoint,11:857},s,fixedPoint)
+sendIntData({0:22.0,1:kp,2:ki,3:kd,6:1,7:sampleTime,8:1,9:setPoint},s,fixedPoint)
 
 fileToWrite=open("/home/pi/Documents/PID_controller/lab_temperature_data/controllerData_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 

@@ -131,7 +131,7 @@ def sendIntData(dictToEncode,serialPort,fixedPoint):
 	for key in dictToEncode:
 		
 		#Both get's tested.
-		if (not type(key) is int) or (key > 11 or key < 0):
+		if (not type(key) is int) or key > 10 or key < 0:
 			raise KeyError(str(key)+" is not a valid key. All keys must be integers betwenn 0 and 10.")
 
 		if (key==0 or key==1 or key==2 or key==3 or key==4 or key==5 or key==9 or key==10):
