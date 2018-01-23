@@ -29,16 +29,17 @@ fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(kp)+", ki: 
 
 if __name__ == "__main__":
         
-        #to build the cnnection to the bricklet.
+        #To build the cnnection to the bricklet.
         ipcon = IPConnection()
 
         t = BrickletTemperature(UID,ipcon)
 
         ipcon.connect(HOST,PORT)
 
-        #This is needed for the loop in which the incoming data is read.
+        #The incoming bytes are safed here.
         data=b''
 
+        #To distinguish between data that should be safed to the logfile.
         objectBefore=0
 
         #Sends and reads the data in an infinite loop.
@@ -52,6 +53,7 @@ if __name__ == "__main__":
                         sendIntData({0:temp,1:kp2,2:ki2,3:kd2},s,fixedPoint)
                         isFirstTime=False
                 """
+
                 #Send the temperature.
                 sendIntData({0:temp},s,fixedPoint)
 
@@ -60,11 +62,15 @@ if __name__ == "__main__":
                 if s.in_waiting:
                         while s.in_waiting:
                                 
+                                #Read the recieved byte
                                 recievedByte=s.read()
                                 
+                                #Terminate if the recieved byte marks the end of the communication
                                 if recievedByte==b'\x00':
-
+                                        #Decode the object that was send with COBS and CBOR
+                                        #There is still a little bug here
                                         obj=cbor2.loads(cobs.decode(data))
+                                        #If a 0.0 is send, this will not be send as a float but as a simple value
                                         if obj==cbor2.CBORSimpleValue(0):
                                                 obj=0
 
@@ -78,6 +84,7 @@ if __name__ == "__main__":
                                                 print(0, end='', flush=True)
                                                 objectBefore=0
                                         """
+                                        #If a int is recieved this will be written in the log file, together with the time and the temperature
                                         if type(obj) is int:
                                                 if type(objectBefore) is int:
                                                         fileToWrite.write(str(datetime.now())[:19]+","+str(temp)+","+str(obj)+"\n")
@@ -97,9 +104,9 @@ if __name__ == "__main__":
                                         #Reinitialize the bytearray for new data.
                                         data=b''
                                 else:
+                                        #If the communication is not finished read the next bytes and add them here
                                         data = data + recievedByte
                 
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
                 time.sleep(sampleTime/1000)
-
 fileToWrite.close()

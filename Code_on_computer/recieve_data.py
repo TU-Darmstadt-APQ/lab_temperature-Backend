@@ -17,7 +17,7 @@ if not s.isOpen:
         #if it is not open, open it
         s.open()
         #time.sleep(1)
-time.sleep(2) #for Arduino Nano/Uno wait 2 s for Due 1 s is okay.
+time.sleep(1) #for Arduino Nano/Uno wait 2 s for Due 1 s is okay.
 
 #Send the main settings to the controller.
 sendIntData({0:22.0,1:kp,2:ki,3:kd,6:1,7:sampleTime,8:1,9:setPoint},s,fixedPoint)
@@ -63,8 +63,11 @@ if __name__ == "__main__":
                                 recievedByte=s.read()
                                 
                                 if recievedByte==b'\x00':
-
+                                        #print(data)
+                                        #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
+                                        #If this is not the case than the communication goes to shit.
                                         obj=cbor2.loads(cobs.decode(data))
+                                        
                                         if obj==cbor2.CBORSimpleValue(0):
                                                 obj=0
 

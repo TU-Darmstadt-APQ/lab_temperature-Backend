@@ -35,12 +35,12 @@ sampleTime=1000
 #setPoint=30.000
 
 #kp=0.94
-kp=383.04 #Value was obtained by parameter estimation.
+kp=103.04 #Value was obtained by parameter estimation.
 #ki=0.07
 ki=0.50 #Value was obtained by parameter estimation.
 #kd=187.69
 kd=2.0
-setPoint=22.500
+setPoint=18.500
 
 controllerIsActive=True
 #isFirstTime=True
