@@ -69,6 +69,7 @@ if __name__ == "__main__":
                                 if recievedByte==b'\x00':
                                         #Decode the object that was send with COBS and CBOR
                                         #There is still a little bug here
+                                        #The bug consists of Serial.print statements in the Arduino code.
                                         obj=cbor2.loads(cobs.decode(data))
                                         #If a 0.0 is send, this will not be send as a float but as a simple value
                                         if obj==cbor2.CBORSimpleValue(0):

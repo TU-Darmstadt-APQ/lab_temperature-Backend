@@ -11,21 +11,14 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 #when there are changes in the input.
 
 
-s = serial.Serial('/dev/ttyACM0',115200)
-#check if the serial port is open
-if not s.isOpen:
-        #if it is not open, open it
-        s.open()
-        #time.sleep(1)
-time.sleep(1) #for Arduino Nano/Uno wait 2 s for Due 1 s is okay.
-
+controller = PIDSender('/dev/ttyUSB0')
 #Send the main settings to the controller.
-sendIntData({0:22.0,1:kp,2:ki,3:kd,6:1,7:sampleTime,8:1,9:setPoint},s,fixedPoint)
+controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
 fileToWrite=open("/home/tobias/Dokumente/Tobi/Studium/Bachelor/PID_Beta_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
 fileToWrite.write("The following data is the temperature of the Metallklotz. The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(kp)+", ki: "+str(ki)+", kd: "+str(kd)+", setpoint: "+str(setPoint)+" ,sample time: "+str(sampleTime)+" ms"+"\n\n")
+fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
 
 if __name__ == "__main__":
         
@@ -53,14 +46,14 @@ if __name__ == "__main__":
                         isFirstTime=False
                 """
                 #Send the temperature.
-                sendIntData({0:temp},s,fixedPoint)
+                controller.sendIntData({0:temp})
 
 
                 #Read the answer of the Arduino with Cbor and Cobs.
-                if s.in_waiting:
-                        while s.in_waiting:
+                if controller.serialPort.in_waiting:
+                        while controller.serialPort.in_waiting:
                                 
-                                recievedByte=s.read()
+                                recievedByte=controller.serialPort.read()
                                 
                                 if recievedByte==b'\x00':
                                         #print(data)
