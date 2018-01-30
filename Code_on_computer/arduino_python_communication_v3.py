@@ -45,9 +45,9 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 #setPoint=18.500
 
 #Needed for the connection to the temperature bricklet.
-HOST="localhost"
-PORT=4223
-UID="zHg"
+#HOST="localhost"
+#PORT=4223
+#UID="zHg"
 #UID="zFZ" #UID for the currently used sensor.
 #UID="zih" #UID for the other sensor
 
@@ -65,8 +65,8 @@ class PIDSender:
 		self.host="localhost"
 		self.port=4223
 		self.uid=newTinkerforgeUID
-		self.ipcon
-		self.tempbricklet
+		self.ipcon=0
+		self.tempBricklet=0
 		
 		self.dataToSend = {}
 		
@@ -90,7 +90,7 @@ class PIDSender:
 
 	def begin(self):
 		self.ipcon = IPConnection()
-		self.tempbricklet = BrickletTemperature(self.uid,ipcon)
+		self.tempBricklet = BrickletTemperature(self.uid,self.ipcon)
 		self.ipcon.connect(self.host,self.port)
 		if not self.serialPort.isOpen():
 			self.serialPort.open()
@@ -114,16 +114,16 @@ class PIDSender:
 		if newKi < 0 or intValue > (2**32)-1:
 			raise(ValueError("Ki must be greater than 0 and smaller than 32 bit."))
 		if not newKi == self.ki:
-				self.dataToSend[1]=newKi
+				self.dataToSend[1]=intValue
 
 	def changeKd(self, newKd):
 		if not type(newKd) is float:
 			raise(TypeError("Kp must be of type float."))
-		intValue=self.fixedPointFloatToInt(newKi)
+		intValue=self.fixedPointFloatToInt(newKd)
 		if newKd < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit after fixed point conversion."))
 		if not newKd == self.kd:
-				self.dataToSend[1]=newKd
+				self.dataToSend[1]=intValue
 
 
 	def changeLowerOutputLimit(self, newLowerOutputLimit):
@@ -174,7 +174,12 @@ class PIDSender:
 		if newOutput < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
 		if not newSetpoint == self.kp:
-				self.dataToSend[10]=intValue	
+				self.dataToSend[10]=intValue
+
+	def sendTemperature(self):
+		temp=self.tempBricklet.get_temperature()/100
+		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:temp}),'withCBOR'))
+
 
 	#liefert einen bytearray der in COBS codierten Daten.
 	#Wird gebrucht als Hilfsfunktion für tobiSender
@@ -244,6 +249,9 @@ class PIDSender:
 
 	def getBaudRate(self):
 		return self.baudRate
+
+	def getTemperature(self):
+		return self.tempBricklet.get_temperature()/100
 
 	#This method is here to print all the current settings of the controller to the console.
 	def printEverything(self):

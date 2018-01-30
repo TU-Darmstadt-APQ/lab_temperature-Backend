@@ -3,17 +3,21 @@
 from arduino_python_communication_v3 import *
 from datetime import datetime
 #import RPi.GPIO as GPIO
-from tinkerforge.ip_connection import IPConnection
-from tinkerforge.bricklet_temperature import BrickletTemperature
 
 #Set the parameters for the PID controller.
 #Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
 #when there are changes in the input.
 
 
-controller = PIDSender('/dev/ttyUSB0')
+controller = PIDSender('/dev/ttyUSB0',"zHg")
 #Send the main settings to the controller.
-controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
+#controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
+
+controller.begin()
+controller.changeKp(100.0)
+controller.changeKi(0.5)
+controller.changeKd(2.0)
+controller.sendNewValues()
 
 fileToWrite=open("/home/tobias/Dokumente/Tobi/Studium/Bachelor/PID_Beta_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
@@ -22,14 +26,6 @@ fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.
 
 if __name__ == "__main__":
         
-        #to build the cnnection to the bricklet.
-        ipcon = IPConnection()
-
-        t = BrickletTemperature(UID,ipcon)
-
-        ipcon.connect(HOST,PORT)
-
-        #This is needed for the loop in which the incoming data is read.
         data=b''
 
         objectBefore=0
@@ -37,16 +33,7 @@ if __name__ == "__main__":
         #Sends and reads the data in an infinite loop.
         while True:
 
-                #Read the temperature.
-                temp = t.get_temperature()/100
-
-                """
-                if abs(temp-setPoint) <= 0.5 and isFirstTime:
-                        sendIntData({0:temp,1:kp2,2:ki2,3:kd2},s,fixedPoint)
-                        isFirstTime=False
-                """
-                #Send the temperature.
-                controller.sendIntData({0:temp})
+                controller.sendTemperature()
 
 
                 #Read the answer of the Arduino with Cbor and Cobs.
