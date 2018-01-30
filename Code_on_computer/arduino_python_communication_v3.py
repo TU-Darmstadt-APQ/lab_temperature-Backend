@@ -26,6 +26,8 @@ import serial
 import time
 from cobs import cobs
 import cbor2
+from tinkerforge.ip_connection import IPConnection
+from tinkerforge.bricklet_temperature import BrickletTemperature
 
 #fixedPoint=16
 #sampleTime=1000
@@ -49,59 +51,131 @@ UID="zHg"
 #UID="zFZ" #UID for the currently used sensor.
 #UID="zih" #UID for the other sensor
 
+#to build the cnnection to the bricklet.
+#ipcon = IPConnection()
+
+#t = BrickletTemperature(UID,ipcon)
+
+#ipcon.connect(HOST,PORT)
+
 #Include a part that can read if the entered dict is accoridng the specifications we want. 
 
 class PIDSender:
-	def __init__(self, initSerialPort):
+	def __init__(self, initSerialPort, newTinkerforgeUID):
+		self.host="localhost"
+		self.port=4223
+		self.uid=newTinkerforgeUID
+		self.ipcon
+		self.tempbricklet
+		
+		self.dataToSend = {}
+		
 		self.baudRate = 115200
 		self.kp = 383.04
 		self.ki = 0.50
 		self.kd = 2.0
 		self.lowerOutputLimit = 0.0
 		self.upperOutputLimit = 4095.0
-		#self.mode = True
+		self.mode = 1
 		self.sampleTime = 1000
 		self.direction = 0
 		self.setpoint = 22.50
-		self.controllerIsActive = 1
+		self.output = self.lowerOutputLimit -1 
+		#self.controllerIsActive = 1
+		
 		self.fixedPoint=16
+		
 		self.serialPort = serial.Serial(initSerialPort,self.baudRate)
+		
+
+	def begin(self):
+		self.ipcon = IPConnection()
+		self.tempbricklet = BrickletTemperature(self.uid,ipcon)
+		self.ipcon.connect(self.host,self.port)
 		if not self.serialPort.isOpen():
 			self.serialPort.open()
 		time.sleep(2) # sleep two seconds to make sure the communication is established.
 
 	#All the setter methods.
-	"""
-	def setKp(self, newKp):
-		self.kp=newKp
 
-	def setKi(self, newKi):
-		self.ki=newKi
+	def changeKp(self, newKp):
+		if not type(newKp) is float:
+			raise(TypeError("Kp must be of type float."))
+		intValue=self.fixedPointFloatToInt(newKp)
+		if newKp < 0 or intValue > (2**32)-1:
+			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
+		if not newKp == self.kp:
+				self.dataToSend[1]=intValue	
 
-	def setKd(self, newKd):
-		self.kd=newKd
+	def changeKi(self, newKi):
+		if not type(newKi) is float:
+			raise(TypeError("Ki must be of type float."))
+		intValue=self.fixedPointFloatToInt(newKi)
+		if newKi < 0 or intValue > (2**32)-1:
+			raise(ValueError("Ki must be greater than 0 and smaller than 32 bit."))
+		if not newKi == self.ki:
+				self.dataToSend[1]=newKi
 
-	def setLowerOutputLimit(self, newLowerOutputLimit):
-		self.lowerOutputLimit=newLowerOutputLimit
+	def changeKd(self, newKd):
+		if not type(newKd) is float:
+			raise(TypeError("Kp must be of type float."))
+		intValue=self.fixedPointFloatToInt(newKi)
+		if newKd < 0 or intValue > (2**32)-1:
+			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit after fixed point conversion."))
+		if not newKd == self.kd:
+				self.dataToSend[1]=newKd
 
-	def setUpperOutputLimit(self, newUpperOutputLimit):
-		self.upperOutputLimit=newUpperOutputLimit
 
-	def setMode(self, newMode):
-		self.mode=newMode
+	def changeLowerOutputLimit(self, newLowerOutputLimit):
+		if not type(newLowerOutputLimit) is float:
+			raise(TypeError("Lower output limit must be of type float"))
+		if not self.lowerOutputLimit == newLowerOutputLimit:
+				self.dataToSend[4]=fixedPointFloatToInt(newLowerOutputLimit)
 
-	def setSampleTime(self, newSampleTime):
-		self.sampleTime=newSampleTime
+	def changeUpperOutputLimit(self, newUpperOutputLimit):
+		if not type(newLowerOutputLimit) is float:
+			raise(TypeError("Upper output limit must be of type float"))
+		if not self.lowerOutputLimit == newLowerOutputLimit:
+				self.dataToSend[5]=fixedPointFloatToInt(newLowerOutputLimit)
 
-	def setDirection(self, newDirection):
-		self.direction=newDirection
+	def changeMode(self, newMode):
+		if not newMode==1 or not newMode==0:
+			raise(ValueError("The mode must be either 0 or 1."))
+		if not self.mode==newMode:
+			self.dataToSend[6]=newMode
 
-	def setSetpoint(self, newSetpoint):
-		self.setpoint=newSetpoint
+	def changeSampleTime(self, newSampleTime):
+		if not type(newSampleTime) is int:
+			raise TypeError("The sample time must be of type int.")
+		if newSampleTime < 0 or newSampleTime > (2**32) -1:
+			raise ValueError("the sample time must be an unsigned int with a maximal length of 32 Bit.")
+		if not self.sampleTime==newSampleTime:
+			self.dataToSend[7]=newSampleTime
 
-	def setControllerActivity(self, newControllerActivity):
-		self.controllerIsActive = newControllerActivity
-	"""
+	def changeDirection(self, newDirection):
+		if not newDirection==1 or not newDirection==0:
+			raise(ValueError("The direction must be either 0 or 1."))
+		if not self.mode==newDirection:
+			self.dataToSend[8]=newDirection
+
+	def changeSetpoint(self, newSetpoint):
+		if not type(newSetpoint) is float:
+			raise(TypeError("Kp must be of type float."))
+		intValue=self.fixedPointFloatToInt(newSetpoint)
+		if newSetpoint < 0 or intValue > (2**32)-1:
+			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
+		if not newSetpoint == self.kp:
+				self.dataToSend[9]=intValue	
+
+	def changeOutput(self, newOutput):
+		if not type(newOutput) is float:
+			raise(TypeError("Kp must be of type float."))
+		intValue=self.fixedPointFloatToInt(newOutput)
+		if newOutput < 0 or intValue > (2**32)-1:
+			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
+		if not newSetpoint == self.kp:
+				self.dataToSend[10]=intValue	
+
 	#liefert einen bytearray der in COBS codierten Daten.
 	#Wird gebrucht als Hilfsfunktion für tobiSender
 	def encodeWithCobs(self,data,x):
@@ -128,6 +202,9 @@ class PIDSender:
 	def fixedPointFloatToInt(self,floatToConvert):
 		return(int(round(floatToConvert*2**(self.fixedPoint),0)))
 
+	def fixedPointIntToFloat(self,intToConvert):
+		return(intToConvert/2**(self.fixedPoint))
+
 	#All the getter methods.
 	def getKp(self):
 		return self.kp
@@ -144,8 +221,8 @@ class PIDSender:
 	def getUpperOutputLimit(self):
 		return self.upperOutputLimit
 
-	#def getMode(self):
-	#	return self.mode
+	def getMode(self):
+		return self.mode
 
 	def getSampleTime(self):
 		return self.sampleTime
@@ -156,8 +233,11 @@ class PIDSender:
 	def getSetpoint(self):
 		return self.setpoint
 
-	def getControllerActivity(self):
-		return self.controllerIsActive
+	#def getControllerActivity(self):
+	#	return self.controllerIsActive
+
+	def getOutput(self):
+		return self.output
 
 	def getFixedPoint(self):
 		return self.fixedPoint
@@ -172,11 +252,63 @@ class PIDSender:
 		print("The value of Kd is: %.2f" % (self.kd))
 		print("The lower output limit is: %.2f" % (self.lowerOutputLimit))
 		print("The upper output limit is: %.2f" % (self.upperOutputLimit))
-		#print("The mode is: %d" % (self.mode))
+		print("The mode is: %d" % (self.mode))
 		print("The sample time is: %d" % (self.sampleTime))
 		print("The direction is: %d" % (self.direction))
 		print("The setpoint is: %.2f" % (self.setpoint))
-		print("Controller is active") if self.controllerIsActive else print("Controller is not active")
+		#print("Controller is active") if self.controllerIsActive else print("Controller is not active")
+	
+	#Check if upper and lower output limit are send together. If they are not send together than the last value is taken.
+	def sendNewValues(self):
+		if 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[4] >= self.dataToSend[5]:
+			raise(ValueError("The upper output limit must be greater than the lower output limit."))
+		if 4 in self.dataToSend and not 5 in self.dataToSend and self.dataToSend[4] >= self.upperOutputLimit:
+			raise(ValueError("The upper output limit must be greater than the lower output limit."))
+		if not 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[5] <= self.lowerOutputLimit:
+			raise(ValueError("The upper output limit must be greater than the lower output limit."))
+
+		if 10 in self.dataToSend and 6 in self.dataToSend and self.dataToSend[6]==1:
+			raise(ValueError("You can only write an output when the controller mode is 0."))
+		if 10 in self.dataToSend and not 6 in self.dataToSend and self.mode==1:
+			raise(ValueError("You can only write an output when the controller mode is 0."))
+
+		if 6 in self.dataToSend and self.dataToSend[6]==1 and self.mode==0:
+			self.dataToSend[10]=0
+
+		encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
+		encodedLength=len(encodedData)
+		if encodedLength > 255:
+			raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
+
+		self.serialPort.write(encodedData)
+
+		for key in self.dataToSend:
+			if key==1:
+				self.kp=self.dataToSend[1]
+			elif key==2:
+				self.ki=self.dataToSend[2]
+			elif key==3:
+				self.ki=self.dataToSend[3]
+			elif key==4:
+				self.lowerOutputLimit=self.dataToSend[4]
+			elif key==5:
+				self.lowerOutputLimit=self.dataToSend[5]
+			elif key==6:
+				self.mode=self.dataToSend[6]
+			elif key==7:
+				self.sampleTime=self.dataToSend[7]
+			elif key==8:
+				self.direction=self.dataToSend[8]
+			elif key==9:
+				self.setpoint=self.dataToSend[9]
+			elif key==10:
+				self.output=self.dataToSend[10]
+
+		if encodedLength >= 100:
+			time.sleep(encodedLength/1200)
+		return True
+
+
 	"""
 	Sends a dict via serial communication to the Arduino. For more information which keys are connected to which parameters take a look in the file readMe.txt.
 	The serialization of the data is ensured by COBS and CBOR. Before the data is send it is checked that the dict fullfills the properties to be read by the Arduino.
@@ -195,7 +327,7 @@ class PIDSender:
 		Double which are written in dictToEncode are converted to uints using fixed point arithmetic. The recommend value is 16.
 
 
-	"""
+	
 	def sendIntData(self,dictToEncode):
 
 		encodedLength=len(self.encodeWithCobs(cbor2.dumps(dictToEncode),'withCBOR'))
@@ -326,3 +458,4 @@ class PIDSender:
 		if encodedLength >= 100:
 			time.sleep(encodedLength/1200)
 		return True
+		"""
