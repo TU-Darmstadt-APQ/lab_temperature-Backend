@@ -28,6 +28,7 @@ from cobs import cobs
 import cbor2
 from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
+from random import random
 
 #fixedPoint=16
 #sampleTime=1000
@@ -61,10 +62,10 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 #Include a part that can read if the entered dict is accoridng the specifications we want. 
 
 class PIDSender:
-	def __init__(self, initSerialPort, newTinkerforgeUID):
+	def __init__(self, initSerialPort):
 		self.host="localhost"
 		self.port=4223
-		self.uid=newTinkerforgeUID
+		self.uid=0
 		self.ipcon=0
 		self.tempBricklet=0
 		
@@ -88,12 +89,19 @@ class PIDSender:
 		self.serialPort = serial.Serial(initSerialPort,self.baudRate)
 		
 
-	def begin(self):
-		self.ipcon = IPConnection()
-		self.tempBricklet = BrickletTemperature(self.uid,self.ipcon)
-		self.ipcon.connect(self.host,self.port)
+	def begin(self,*SensorUID,**keyword_parameters):
+		if "SensorUID" in keyword_parameters:
+			self.uid=SensorUID
+			self.ipcon = IPConnection()
+			self.tempBricklet = BrickletTemperature(self.uid,self.ipcon)
+			self.ipcon.connect(self.host,self.port)
+		
+		self.serialPort.close()
 		if not self.serialPort.isOpen():
 			self.serialPort.open()
+			print("Serial port opened.")
+		else:
+			print("Serial port was already open.")
 		time.sleep(2) # sleep two seconds to make sure the communication is established.
 
 	#All the setter methods.
@@ -114,7 +122,7 @@ class PIDSender:
 		if newKi < 0 or intValue > (2**32)-1:
 			raise(ValueError("Ki must be greater than 0 and smaller than 32 bit."))
 		if not newKi == self.ki:
-				self.dataToSend[1]=intValue
+				self.dataToSend[2]=intValue
 
 	def changeKd(self, newKd):
 		if not type(newKd) is float:
@@ -123,23 +131,23 @@ class PIDSender:
 		if newKd < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit after fixed point conversion."))
 		if not newKd == self.kd:
-				self.dataToSend[1]=intValue
+				self.dataToSend[3]=intValue
 
 
 	def changeLowerOutputLimit(self, newLowerOutputLimit):
 		if not type(newLowerOutputLimit) is float:
 			raise(TypeError("Lower output limit must be of type float"))
 		if not self.lowerOutputLimit == newLowerOutputLimit:
-				self.dataToSend[4]=fixedPointFloatToInt(newLowerOutputLimit)
+				self.dataToSend[4]=self.fixedPointFloatToInt(newLowerOutputLimit)
 
 	def changeUpperOutputLimit(self, newUpperOutputLimit):
-		if not type(newLowerOutputLimit) is float:
+		if not type(newUpperOutputLimit) is float:
 			raise(TypeError("Upper output limit must be of type float"))
-		if not self.lowerOutputLimit == newLowerOutputLimit:
-				self.dataToSend[5]=fixedPointFloatToInt(newLowerOutputLimit)
+		if not self.upperOutputLimit == newUpperOutputLimit:
+				self.dataToSend[5]=self.fixedPointFloatToInt(newUpperOutputLimit)
 
 	def changeMode(self, newMode):
-		if not newMode==1 or not newMode==0:
+		if not (newMode==1 or newMode==0):
 			raise(ValueError("The mode must be either 0 or 1."))
 		if not self.mode==newMode:
 			self.dataToSend[6]=newMode
@@ -153,9 +161,9 @@ class PIDSender:
 			self.dataToSend[7]=newSampleTime
 
 	def changeDirection(self, newDirection):
-		if not newDirection==1 or not newDirection==0:
+		if not (newDirection==1 or newDirection==0):
 			raise(ValueError("The direction must be either 0 or 1."))
-		if not self.mode==newDirection:
+		if not self.direction==newDirection:
 			self.dataToSend[8]=newDirection
 
 	def changeSetpoint(self, newSetpoint):
@@ -180,6 +188,20 @@ class PIDSender:
 		temp=self.tempBricklet.get_temperature()/100
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:temp}),'withCBOR'))
 
+	def sendRandomTemperature(self):
+		#if the direction is 1 (direct)
+		temp=random()
+		print(self.direction)
+		#print(temp)
+		if self.direction==0:
+			temp=self.setpoint-10*temp
+		#if the direction is 0 (reverse)
+		else:
+			temp=self.setpoint+10*temp
+		print("The random temperature is:",temp)
+		#print("Writing data to serial port.")
+		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:temp}),'withCBOR'))
+		#print("Random Temperature was send.")
 
 	#liefert einen bytearray der in COBS codierten Daten.
 	#Wird gebrucht als Hilfsfunktion für tobiSender
@@ -253,6 +275,9 @@ class PIDSender:
 	def getTemperature(self):
 		return self.tempBricklet.get_temperature()/100
 
+	def getBuffer(self):
+		return self.dataToSend
+
 	#This method is here to print all the current settings of the controller to the console.
 	def printEverything(self):
 		print("The value of Kp is: %.2f" % (self.kp))
@@ -288,19 +313,21 @@ class PIDSender:
 		if encodedLength > 255:
 			raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
 
+		print("Trying to write data on serial port.")
 		self.serialPort.write(encodedData)
+		print("Data written to port.")
 
 		for key in self.dataToSend:
 			if key==1:
-				self.kp=self.dataToSend[1]
+				self.kp=self.fixedPointIntToFloat(self.dataToSend[1])
 			elif key==2:
-				self.ki=self.dataToSend[2]
+				self.ki=self.fixedPointIntToFloat(self.dataToSend[2])
 			elif key==3:
-				self.ki=self.dataToSend[3]
+				self.kd=self.fixedPointIntToFloat(self.dataToSend[3])
 			elif key==4:
-				self.lowerOutputLimit=self.dataToSend[4]
+				self.lowerOutputLimit=self.fixedPointIntToFloat(self.dataToSend[4])
 			elif key==5:
-				self.lowerOutputLimit=self.dataToSend[5]
+				self.upperOutputLimit=self.fixedPointIntToFloat(self.dataToSend[5])
 			elif key==6:
 				self.mode=self.dataToSend[6]
 			elif key==7:
@@ -308,9 +335,9 @@ class PIDSender:
 			elif key==8:
 				self.direction=self.dataToSend[8]
 			elif key==9:
-				self.setpoint=self.dataToSend[9]
+				self.setpoint=self.fixedPointIntToFloat(self.dataToSend[9])
 			elif key==10:
-				self.output=self.dataToSend[10]
+				self.output=self.fixedPointIntToFloat(self.dataToSend[10])
 
 		if encodedLength >= 100:
 			time.sleep(encodedLength/1200)

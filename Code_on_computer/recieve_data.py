@@ -9,15 +9,25 @@ from datetime import datetime
 #when there are changes in the input.
 
 
-controller = PIDSender('/dev/ttyUSB0',"zHg")
+controller = PIDSender('/dev/ttyACM0')
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
+#controller.begin(SensorUID="zHg")
 controller.begin()
-controller.changeKp(100.0)
-controller.changeKi(0.5)
-controller.changeKd(2.0)
+controller.changeDirection(1)
+controller.changeKp(10.0)
+controller.changeKi(0.02)
+controller.changeKd(0.0)
+controller.changeSetpoint(30.0)
+controller.changeLowerOutputLimit(0.0)
+controller.changeUpperOutputLimit(255.0)
+
 controller.sendNewValues()
+
+print("\n")
+controller.printEverything()
+print("\n")
 
 fileToWrite=open("/home/tobias/Dokumente/Tobi/Studium/Bachelor/PID_Beta_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
@@ -33,8 +43,7 @@ if __name__ == "__main__":
         #Sends and reads the data in an infinite loop.
         while True:
 
-                controller.sendTemperature()
-
+                temp=controller.sendRandomTemperature()
 
                 #Read the answer of the Arduino with Cbor and Cobs.
                 if controller.serialPort.in_waiting:
@@ -83,6 +92,6 @@ if __name__ == "__main__":
                                         data = data + recievedByte
                 
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-                time.sleep(sampleTime/1000)
+                time.sleep(controller.getSampleTime()/1000)
 
 fileToWrite.close()
