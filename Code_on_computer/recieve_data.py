@@ -16,7 +16,7 @@ controller = PIDSender('/dev/ttyACM0')
 #controller.begin(SensorUID="zHg")
 controller.begin()
 controller.changeDirection(1)
-controller.changeKp(10.0)
+controller.changeKp(11.0)
 controller.changeKi(0.02)
 controller.changeKd(0.0)
 controller.changeSetpoint(30.0)
@@ -25,9 +25,9 @@ controller.changeUpperOutputLimit(255.0)
 
 controller.sendNewValues()
 
-print("\n")
-controller.printEverything()
-print("\n")
+#print("\n")
+#controller.printEverything()
+#print("\n")
 
 fileToWrite=open("/home/tobias/Dokumente/Tobi/Studium/Bachelor/PID_Beta_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 

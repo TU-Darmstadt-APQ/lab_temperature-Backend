@@ -29,6 +29,7 @@ import cbor2
 from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
 from random import random
+import os.path
 
 #fixedPoint=16
 #sampleTime=1000
@@ -72,16 +73,17 @@ class PIDSender:
 		self.dataToSend = {}
 		
 		self.baudRate = 115200
-		self.kp = 383.04
-		self.ki = 0.50
-		self.kd = 2.0
+		self.kp = 0.0
+		self.ki = 0.0
+		self.kd = 0.0
 		self.lowerOutputLimit = 0.0
 		self.upperOutputLimit = 4095.0
 		self.mode = 1
 		self.sampleTime = 1000
 		self.direction = 0
 		self.setpoint = 22.50
-		self.output = self.lowerOutputLimit -1 
+		self.output = 0.0
+		self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)] 
 		#self.controllerIsActive = 1
 		
 		self.fixedPoint=16
@@ -90,6 +92,24 @@ class PIDSender:
 		
 
 	def begin(self,*SensorUID,**keyword_parameters):
+		if not os.path.exists("settings.txt"):
+			settings=open("settings.txt","w")
+			settings.writelines(self.settingsList)
+			settings.close()
+		settings=open("settings.txt","r")
+		self.settingsList=settings.readlines()
+		self.kp=float(self.settingsList[0][:-1])
+		self.ki=float(self.settingsList[1][:-1])
+		self.kd=float(self.settingsList[2][:-1])
+		self.lowerOutputLimit=float(self.settingsList[3][:-1])
+		self.upperOutputLimit=float(self.settingsList[4][:-1])
+		self.mode=int(self.settingsList[5][:-1])
+		self.sampleTime=int(self.settingsList[6][:-1])
+		self.direction=int(self.settingsList[7][:-1])
+		self.setpoint=float(self.settingsList[8][:-1])
+		self.output=float(self.settingsList[9][:-1])
+		settings.close()
+
 		if "SensorUID" in keyword_parameters:
 			self.uid=SensorUID
 			self.ipcon = IPConnection()
@@ -186,12 +206,12 @@ class PIDSender:
 
 	def sendTemperature(self):
 		temp=self.tempBricklet.get_temperature()/100
-		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:temp}),'withCBOR'))
+		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
 
 	def sendRandomTemperature(self):
 		#if the direction is 1 (direct)
 		temp=random()
-		print(self.direction)
+		#print(self.direction)
 		#print(temp)
 		if self.direction==0:
 			temp=self.setpoint-10*temp
@@ -200,7 +220,7 @@ class PIDSender:
 			temp=self.setpoint+10*temp
 		print("The random temperature is:",temp)
 		#print("Writing data to serial port.")
-		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:temp}),'withCBOR'))
+		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
 		#print("Random Temperature was send.")
 
 	#liefert einen bytearray der in COBS codierten Daten.
@@ -313,31 +333,47 @@ class PIDSender:
 		if encodedLength > 255:
 			raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
 
-		print("Trying to write data on serial port.")
+		#print("Trying to write data on serial port.")
 		self.serialPort.write(encodedData)
-		print("Data written to port.")
-
+		#print("Data written to port.")
+		settings=open("settings.txt","r+")
+		self.settingsList=settings.readlines()
 		for key in self.dataToSend:
 			if key==1:
 				self.kp=self.fixedPointIntToFloat(self.dataToSend[1])
+				self.settingsList[0]=str(self.kp)+"\n"
 			elif key==2:
 				self.ki=self.fixedPointIntToFloat(self.dataToSend[2])
+				self.settingsList[1]=str(self.ki)+"\n"
 			elif key==3:
 				self.kd=self.fixedPointIntToFloat(self.dataToSend[3])
+				self.settingsList[2]=str(self.kd)+"\n"
 			elif key==4:
 				self.lowerOutputLimit=self.fixedPointIntToFloat(self.dataToSend[4])
+				self.settingsList[3]=str(self.lowerOutputLimit)+"\n"
 			elif key==5:
 				self.upperOutputLimit=self.fixedPointIntToFloat(self.dataToSend[5])
+				self.settingsList[4]=str(self.upperOutputLimit)+"\n"
 			elif key==6:
 				self.mode=self.dataToSend[6]
+				self.settingsList[5]=str(self.mode)+"\n"
 			elif key==7:
 				self.sampleTime=self.dataToSend[7]
+				self.settingsList[6]=str(self.sampleTime)+"\n"
 			elif key==8:
 				self.direction=self.dataToSend[8]
+				self.settingsList[7]=str(self.direction)+"\n"
 			elif key==9:
 				self.setpoint=self.fixedPointIntToFloat(self.dataToSend[9])
+				self.settingsList[8]=str(self.setpoint)+"\n"
 			elif key==10:
 				self.output=self.fixedPointIntToFloat(self.dataToSend[10])
+				self.settingsList[9]=str(self.output)
+		settings.close()
+
+		with open("settings.txt","w") as settings:
+			print(self.settingsList)
+			settings.writelines(self.settingsList)
 
 		if encodedLength >= 100:
 			time.sleep(encodedLength/1200)
