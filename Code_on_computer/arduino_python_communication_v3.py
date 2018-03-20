@@ -126,6 +126,7 @@ class PIDSender:
 
 	#All the setter methods.
 
+
 	def changeKp(self, newKp):
 		if not type(newKp) is float:
 			raise(TypeError("Kp must be of type float."))
@@ -201,7 +202,7 @@ class PIDSender:
 		intValue=self.fixedPointFloatToInt(newOutput)
 		if newOutput < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-		if not newSetpoint == self.kp:
+		if not newOutput == self.output:
 				self.dataToSend[10]=intValue
 
 	def sendTemperature(self):
@@ -218,7 +219,7 @@ class PIDSender:
 		#if the direction is 0 (reverse)
 		else:
 			temp=self.setpoint+10*temp
-		print("The random temperature is:",temp)
+		#print("The random temperature is:",temp)
 		#print("Writing data to serial port.")
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
 		#print("Random Temperature was send.")
@@ -326,7 +327,7 @@ class PIDSender:
 			raise(ValueError("You can only write an output when the controller mode is 0."))
 
 		if 6 in self.dataToSend and self.dataToSend[6]==1 and self.mode==0:
-			self.dataToSend[10]=0
+			self.dataToSend[10]=0.0
 
 		encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
 		encodedLength=len(encodedData)
@@ -372,7 +373,7 @@ class PIDSender:
 		settings.close()
 
 		with open("settings.txt","w") as settings:
-			print(self.settingsList)
+			#print(self.settingsList)
 			settings.writelines(self.settingsList)
 
 		if encodedLength >= 100:
