@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/tobias/anaconda3/bin/python3
 
 from arduino_python_communication_v3 import *
 from datetime import datetime
@@ -13,16 +13,17 @@ controller = PIDSender('/dev/ttyACM0')
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
-controller.begin(SensorUID="zih")
+controller.begin()
 #controller.begin()
 controller.changeDirection(1)
-controller.changeKp(382.0)
-controller.changeKi(0.5)
+controller.changeKp(100.0)
+controller.changeKi(0.1)
 controller.changeKd(2.0)
-#controller.changeMode(1)
-controller.changeSetpoint(22.50)
+controller.changeMode(1)
+controller.changeSetpoint(30.00)
 controller.changeLowerOutputLimit(0.0)
 controller.changeUpperOutputLimit(4095.0)
+controller.changeSampleTime(1000)
 #controller.changeOutput(100.0)
 controller.sendNewValues()
 
@@ -30,7 +31,7 @@ controller.sendNewValues()
 #controller.printEverything()
 #print("\n")
 
-fileToWrite=open("/home/pi/lab_temperature_system/Lab_11_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
+fileToWrite=open("/home/tobias/throw_away_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
 fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
 fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
@@ -44,7 +45,7 @@ if __name__ == "__main__":
         #Sends and reads the data in an infinite loop.
         while True:
 
-                temp=controller.sendTemperature()
+                temp=controller.sendRandomTemperature()
 
                 #Read the answer of the Arduino with Cbor and Cobs.
                 if controller.serialPort.in_waiting:

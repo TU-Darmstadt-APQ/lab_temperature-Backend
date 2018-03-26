@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!//home/tobias/anaconda3/bin/python3
 
 import os
 #import sqlite3
@@ -49,14 +49,18 @@ def formTest():
 	if form.upperOutputLimit.data != None:
 		controller.changeUpperOutputLimit(float(form.upperOutputLimit.data))
 
-	if form.mode.data != None:
-		controller.changeMode(int(form.mode.data))
+	if request.form.get("mode") == "AUTOMATIC":
+		controller.changeMode(int(1))
+	else:
+		controller.changeMode(int(0))
 
 	if form.sampleTime.data != None:
 		controller.changeSampleTime(int(form.sampleTime.data))
 
-	if form.direction.data != None:
-		controller.changeDirection(int(form.direction.data))
+	if request.form.get("direction") == "REVERSE":
+		controller.changeDirection(int(1))
+	else:
+		controller.changeDirection(int(0))
 
 	if form.setpoint.data != None:
 		controller.changeSetpoint(float(form.setpoint.data))
@@ -68,30 +72,26 @@ def formTest():
 	if bool(controller.getBuffer()):
 		controller.sendNewValues()
 
-	return(render_template("form_test.html",form=form))
+	kpValue="%.2f" % (controller.getKp())
+	kiValue="%.2f" % (controller.getKi())
+	kdValue="%.2f" % (controller.getKd())
+	lowerOutputLim="%.2f" % (controller.getLowerOutputLimit())
+	upperOutputLim="%.2f" % (controller.getUpperOutputLimit())
+	sampleTimeValue="%.2f" % (controller.getSampleTime())
+	setpointValue="%.2f" % (controller.getSetpoint())
+	outputValue="%.2f" % (controller.getOutput())
+	print(controller.getMode())
+	if controller.getMode()==0:
+		modeValue="disabled"
+	else:
+		modeValue="enabled"
 
-"""
-@app.route("/sendSuccessfull")
-def sendSuccessfull():
-	return(render_template("sendSuccessfull.html",form=form))
+	if controller.getDirection()==0:
+		directionValue="direct"
+	else:
+		directionValue="reverse"
 
+	return(render_template("form_test.html",form=form,kpValue=kpValue,kiValue=kiValue,kdValue=kdValue,lol=lowerOutputLim,uol=upperOutputLim,setpointValue=setpointValue,sampleTimeValue=sampleTimeValue,outputValue=outputValue,modeValue=modeValue,directionValue=directionValue))
 
-@app.route("/home")
-def home():
-	return render_template("home.html")
-
-@app.route("/home",methods=["POST"])
-def handle_data():
-	newKp=request.form["newKp"]
-	newKi=request.form["newKi"]
-	#print(1+2)
-	print(newKi==None)
-	return render_template("home.html")
-
-
-@app.route("/<hurensohn>")
-def hurensohn(hurensohn):
-	return("huso %s") % hurensohn
-"""
 if __name__ == "__main__":
-	app.run(host="0.0.0.0",debug=True)
+	app.run(debug=True)
