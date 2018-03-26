@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<form method="post" action="/formTest">
+	{{ form.csfr_token }}
+	{{ form.kp }} Kp <br /> 
+	{{ form.ki }} Ki <br />
+	{{ form.kd }} Kd <br />
+	{{ form.lowerOutputLimit }} Lower output limit<br />
+	{{ form.upperOutputLimit }} Upper output limit<br />
+	{{ form.mode }} Mode <br />
+	{{ form.sampleTime }} Sample time <br />
+	{{ form.direction }} Direction <br />
+	{{ form.setpoint }} Setpoint <br />
+	{{ form.output }} Output <br /><br />
+	<input type="submit" value="send data">
+<form/>
+{% endblock %}
