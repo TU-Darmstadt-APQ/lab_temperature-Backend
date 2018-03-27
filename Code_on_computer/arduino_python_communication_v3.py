@@ -331,18 +331,26 @@ class PIDSender:
 	def sendNewValues(self):
 		if 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[4] >= self.dataToSend[5]:
 			raise(ValueError("The upper output limit must be greater than the lower output limit."))
-		if 4 in self.dataToSend and not 5 in self.dataToSend and self.dataToSend[4] >= self.upperOutputLimit:
-			raise(ValueError("The upper output limit must be greater than the lower output limit."))
-		if not 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[5] <= self.lowerOutputLimit:
-			raise(ValueError("The upper output limit must be greater than the lower output limit."))
+		
+		if 4 in self.dataToSend and not 5 in self.dataToSend:
+			if self.dataToSend[4] >= self.fixedPointFloatToInt(self.upperOutputLimit):
+				raise(ValueError("The upper output limit must be greater than the lower output limit."))
+			else:
+				intValue=self.fixedPointFloatToInt(self.upperOutputLimit)
+				self.dataToSend[5]=intValue	
+
+		if not 4 in self.dataToSend and 5 in self.dataToSend:
+			if self.dataToSend[5] <= self.fixedPointFloatToInt(self.lowerOutputLimit):
+				raise(ValueError("The upper output limit must be greater than the lower output limit."))
+			else:
+				intValue=self.fixedPointFloatToInt(self.lowerOutputLimit)
+				self.dataToSend[4]=intValue	
 
 		if 10 in self.dataToSend and 6 in self.dataToSend and self.dataToSend[6]==1:
 			raise(ValueError("You can only write an output when the controller mode is 0."))
 		if 10 in self.dataToSend and not 6 in self.dataToSend and self.mode==1:
 			raise(ValueError("You can only write an output when the controller mode is 0."))
 
-		#if 6 in self.dataToSend and self.dataToSend[6]==1 and self.mode==0:
-		#self.dataToSend[10]=0.0
 
 		encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
 		encodedLength=len(encodedData)

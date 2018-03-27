@@ -49,25 +49,32 @@ def formTest():
 	if form.upperOutputLimit.data != None:
 		controller.changeUpperOutputLimit(float(form.upperOutputLimit.data))
 
-	if request.form.get("mode") == "AUTOMATIC":
-		controller.changeMode(int(1))
-	else:
-		controller.changeMode(int(0))
-
 	if form.sampleTime.data != None:
 		controller.changeSampleTime(int(form.sampleTime.data))
-
-	if request.form.get("direction") == "REVERSE":
-		controller.changeDirection(int(1))
-	else:
-		controller.changeDirection(int(0))
 
 	if form.setpoint.data != None:
 		controller.changeSetpoint(float(form.setpoint.data))
 
 	if form.output.data != None:
 		#print(form.output.data)
-		controller.changeOutput(float(form.output.data))
+		if controller.getMode()==s0:
+			controller.changeOutput(float(form.output.data))
+		else:
+			pass
+
+	if request.form.get("mode") == "AUTOMATIC":
+		controller.changeMode(int(1))
+	elif request.form.get("mode") == "MANUAL":
+		controller.changeMode(int(0))
+	else:
+		pass
+
+	if request.form.get("direction") == "REVERSE":
+		controller.changeDirection(int(1))
+	elif request.form.get("direction") == "DIRECT":
+		controller.changeDirection(int(0))
+	else:
+		pass
 
 	if bool(controller.getBuffer()):
 		controller.sendNewValues()
@@ -80,7 +87,7 @@ def formTest():
 	sampleTimeValue="%.2f" % (controller.getSampleTime())
 	setpointValue="%.2f" % (controller.getSetpoint())
 	outputValue="%.2f" % (controller.getOutput())
-	print(controller.getMode())
+	
 	if controller.getMode()==0:
 		modeValue="disabled"
 	else:

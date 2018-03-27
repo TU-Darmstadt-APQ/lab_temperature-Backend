@@ -4,25 +4,23 @@
 
 <form method="post" action="/formTest">
 	{{ form.csfr_token }}
-	{{ form.kp }} Kp, current value: {{kpValue}}<br /> 
-	{{ form.ki }} Ki, current value: {{kiValue}}<br />
-	{{ form.kd }} Kd, current value: {{kdValue}}<br />
-	{{ form.lowerOutputLimit }} Lower output limit, current value: {{lol}}<br />
-	{{ form.upperOutputLimit }} Upper output limit, current value: {{uol}}<br />
-	{{ form.sampleTime }} Sample time, current value: {{sampleTimeValue}} ms <br />
-	{{ form.setpoint }} Setpoint, current value: {{setpointValue}} C <br />
-	{{ form.output }} Output, current value: {{outputValue}} <br />
+	{{ form.kp }} Kp ({{kpValue}})<br /> 
+	{{ form.ki }} Ki ({{kiValue}})<br />
+	{{ form.kd }} Kd ({{kdValue}})<br />
+	{{ form.lowerOutputLimit }} Lower output limit ({{lol}})<br />
+	{{ form.upperOutputLimit }} Upper output limit ({{uol}})<br />
+	{{ form.sampleTime }} Sample time ({{sampleTimeValue}} ms)<br />
+	{{ form.setpoint }} Setpoint ({{setpointValue}} C)<br />
+	{{ form.output }} Output ({{outputValue}}) <br /><br />
+	
 	Mode ({{modeValue}}): <br>
-	<!--<input type=radio name=myradio value="1"<%= r1Checked %>>
-	<input type=radio name=myradio value="2"<%= r2Checked %>>-->
-
 	<input type="radio" name="mode" id="MANUAL" value="MANUAL"/> Disabled <br>
-	<input type="radio" name="mode" id="AUTOMATIC"/> Enabled <br>
+	<input type="radio" name="mode" id="AUTOMATIC" value="AUTOMATIC"/> Enabled <br><br/>
+	
 	Direction ({{directionValue}}): <br>
 	<input type="radio" name="direction" id="DIRECT" value="DIRECT"> Direct </input><br>
 	<input type="radio" name="direction" id="REVERSE" value="REVERSE"> Reverse </input><br><br />
-	<!--<input type="checkbox" name="1" value="mode"> {{ form.mode }} Mode <br />-->
-	<!--<input type="checkbox" name="1" value="direction"> {{ form.direction }} Direction <br /><br />-->
+
 	<input type="submit" value="send data"><br />
 <form/>
 

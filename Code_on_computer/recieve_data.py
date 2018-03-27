@@ -37,13 +37,21 @@ fileToWrite.write("The first coloumn of data is the time, the second is the  tem
 fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
 
 if __name__ == "__main__":
-        
+
         data=b''
 
         objectBefore=0
 
         #Sends and reads the data in an infinite loop.
         while True:
+
+                settingsFile=open("settings.txt","r")
+
+                settings=settingsFile.readlines()
+
+                settingsSampleTime=float(settings[6][:-1])
+
+                settingsFile.close()
 
                 temp=controller.sendRandomTemperature()
 
@@ -94,6 +102,6 @@ if __name__ == "__main__":
                                         data = data + recievedByte
                 
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-                time.sleep(controller.getSampleTime()/1000)
+                time.sleep(settingsSampleTime/1000)
 
 fileToWrite.close()
