@@ -3,75 +3,70 @@
 from arduino_python_communication_v3 import *
 from datetime import datetime
 #import RPi.GPIO as GPIO
-from tinkerforge.ip_connection import IPConnection
-from tinkerforge.bricklet_temperature import BrickletTemperature
 
 #Set the parameters for the PID controller.
 #Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
 #when there are changes in the input.
 
 
-s = serial.Serial('/dev/ttyACM0',115200)
-#check if the serial port is open
-if not s.isOpen:
-        #if it is not open, open it
-        s.open()
-        #time.sleep(1)
-time.sleep(2) #for Arduino Nano/Uno wait 2 s for Due 1 s is okay.
-
+controller = PIDSender('/dev/ttyACM0')
 #Send the main settings to the controller.
-sendIntData({0:22.0,1:kp,2:ki,3:kd,6:1,7:sampleTime,8:1,9:setPoint},s,fixedPoint)
+#controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
-fileToWrite=open("/home/pi/Documents/PID_controller/lab_temperature_data/controllerData_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
+controller.begin(SensorUID="zih")
+#controller.begin()
+controller.changeDirection(1)
+controller.changeKp(383.0)
+controller.changeKi(0.5)
+controller.changeKd(2.0)
+controller.changeMode(1)
+controller.changeSetpoint(22.50)
+controller.changeLowerOutputLimit(0.0)
+controller.changeUpperOutputLimit(4095.0)
+controller.changeSampleTime(1000)
+#controller.changeOutput(100.0)
+controller.sendNewValues()
 
-fileToWrite.write("The following data is the temperature of the Metallklotz. The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(kp)+", ki: "+str(ki)+", kd: "+str(kd)+", setpoint: "+str(setPoint)+" ,sample time: "+str(sampleTime)+" ms"+"\n\n")
+#print("\n")
+#controller.printEverything()
+#print("\n")
+
+fileToWrite=open("/home/pi/lab_temperature_system/Lab_11_temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
+
+fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
+fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
 
 if __name__ == "__main__":
-        
-        #To build the cnnection to the bricklet.
-        ipcon = IPConnection()
 
-        t = BrickletTemperature(UID,ipcon)
-
-        ipcon.connect(HOST,PORT)
-
-        #The incoming bytes are safed here.
         data=b''
 
-        #To distinguish between data that should be safed to the logfile.
         objectBefore=0
 
         #Sends and reads the data in an infinite loop.
         while True:
 
-                #Read the temperature.
-                temp = t.get_temperature()/100
+                settingsFile=open("settings.txt","r")
 
-                """
-                if abs(temp-setPoint) <= 0.5 and isFirstTime:
-                        sendIntData({0:temp,1:kp2,2:ki2,3:kd2},s,fixedPoint)
-                        isFirstTime=False
-                """
+                settings=settingsFile.readlines()
 
-                #Send the temperature.
-                sendIntData({0:temp},s,fixedPoint)
+                settingsSampleTime=float(settings[6][:-1])
 
+                settingsFile.close()
+
+                temp=controller.sendTemperature()
 
                 #Read the answer of the Arduino with Cbor and Cobs.
-                if s.in_waiting:
-                        while s.in_waiting:
+                if controller.serialPort.in_waiting:
+                        while controller.serialPort.in_waiting:
                                 
-                                #Read the recieved byte
-                                recievedByte=s.read()
+                                recievedByte=controller.serialPort.read()
                                 
-                                #Terminate if the recieved byte marks the end of the communication
                                 if recievedByte==b'\x00':
-                                        #Decode the object that was send with COBS and CBOR
-                                        #There is still a little bug here
-                                        #The bug consists of Serial.print statements in the Arduino code.
+                                        #print(data)
+                                        #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
+                                        #If this is not the case than the communication goes to shit.
                                         obj=cbor2.loads(cobs.decode(data))
-                                        #If a 0.0 is send, this will not be send as a float but as a simple value
+                                        
                                         if obj==cbor2.CBORSimpleValue(0):
                                                 obj=0
 
@@ -85,7 +80,6 @@ if __name__ == "__main__":
                                                 print(0, end='', flush=True)
                                                 objectBefore=0
                                         """
-                                        #If a int is recieved this will be written in the log file, together with the time and the temperature
                                         if type(obj) is int:
                                                 if type(objectBefore) is int:
                                                         fileToWrite.write(str(datetime.now())[:19]+","+str(temp)+","+str(obj)+"\n")
@@ -105,9 +99,9 @@ if __name__ == "__main__":
                                         #Reinitialize the bytearray for new data.
                                         data=b''
                                 else:
-                                        #If the communication is not finished read the next bytes and add them here
                                         data = data + recievedByte
                 
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-                time.sleep(sampleTime/1000)
+                time.sleep(settingsSampleTime/1000)
+
 fileToWrite.close()
