@@ -3,8 +3,6 @@
 wget http://download.tinkerforge.com/tools/brickd/linux/brickd_linux_latest_armhf.deb
 sudo dpkg -i brickd_linux_latest_armhf.deb
 
-sudo apt-get install nmap 
-
 sudo apt-get install screen
 
 sudo apt-get install python3-pip
