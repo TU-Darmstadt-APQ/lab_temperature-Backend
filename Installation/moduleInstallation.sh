@@ -1,10 +1,5 @@
 #!/usr/bin/bash
 
-wget http://download.tinkerforge.com/tools/brickd/linux/brickd_linux_latest_armhf.deb
-sudo dpkg -i brickd_linux_latest_armhf.deb
-
-sudo apt-get intall screen
-
 sudo apt-get install python3-pip
 
 sudo pip install pyserial
