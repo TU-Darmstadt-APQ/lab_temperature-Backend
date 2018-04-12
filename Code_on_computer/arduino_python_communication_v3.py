@@ -37,6 +37,7 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 from random import random
 #To check if a settings.txt file exists
 import os.path
+import os
  
 
 #Constructor of the PIDSender class. Only takes the device directory of the controller as input (e.g. /dev/ttyACM0).
@@ -137,6 +138,12 @@ class PIDSender:
 	-integer values:
 		Works the same as the floating point values without the conversion at the beginning.
 	"""
+	def reset(self):
+		if os.path.exists("settings.txt"):
+			os.remove("settings.txt")
+			print("The existing settings file was removed.")
+		else:
+			print("Couldn't reset the controller. No settings file has been created.")
 
 	def changeKp(self, newKp):
 		if not type(newKp) is float:
@@ -222,6 +229,7 @@ class PIDSender:
 	def sendTemperature(self):
 		temp=self.tempBricklet.get_temperature()/100
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
+		return(temp)
 
 	#Sends a random temperature to the controller.
 	#No connection with a Tinkerforge bricklet is needed for this method to work.
@@ -235,7 +243,7 @@ class PIDSender:
 		else:
 			temp=self.setpoint+10*temp
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
-
+		return(temp)
 	#Method to encode given data with cobs.
 	#Takes two parameters as input:
 	#	-data: The data that should be encoded.

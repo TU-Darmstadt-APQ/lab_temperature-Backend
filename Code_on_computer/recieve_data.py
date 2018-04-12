@@ -13,6 +13,7 @@ controller = PIDSender('/dev/ttyACM0')
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
+controller.reset()
 controller.begin()
 #controller.begin()
 controller.changeDirection(1)
@@ -40,8 +41,6 @@ if __name__ == "__main__":
 
         data=b''
 
-        objectBefore=0
-
         #Sends and reads the data in an infinite loop.
         while True:
 
@@ -54,6 +53,7 @@ if __name__ == "__main__":
                 settingsFile.close()
 
                 temp=controller.sendRandomTemperature()
+                tempString="%.2f" % temp
 
                 #Read the answer of the Arduino with Cbor and Cobs.
                 if controller.serialPort.in_waiting:
@@ -81,21 +81,20 @@ if __name__ == "__main__":
                                                 objectBefore=0
                                         """
                                         if type(obj) is int:
-                                                if type(objectBefore) is int:
-                                                        fileToWrite.write(str(datetime.now())[:19]+","+str(temp)+","+str(obj)+"\n")
+                                                fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
                                                 print(obj, end='', flush=True)
-                                                objectBefore=obj
 
                                         #Floats will be rounded to two numbers after the comma.
                                         elif type(obj) is float:
+                                                fileToWrite.write(str(obj)+"\n")
                                                 print("%.2f" % obj, end='', flush=True)
-                                                objectBefore=obj
 
                                         #All the other datatypes are printed normally.
-                                        else:
+                                        else:   
+                                                if obj != "\n":
+                                                        fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj))
                                                 print(obj, end='', flush=True)
-                                        
-                                        
+
                                         #Reinitialize the bytearray for new data.
                                         data=b''
                                 else:
