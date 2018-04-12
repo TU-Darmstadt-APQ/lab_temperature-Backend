@@ -66,7 +66,7 @@ class PIDSender:
 		self.sampleTime = 1000
 		self.direction = 0
 		self.setpoint = 22.50
-		self.output = 0.0
+		self.output = -1.0
 
 		#List of the settings that are saved in the settings.txt file.
 		self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
@@ -244,6 +244,11 @@ class PIDSender:
 			temp=self.setpoint+10*temp
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
 		return(temp)
+
+	#Sends a specific temperature to controller that the user acn choose.
+	def sendManualTemperature(self,inputTemperature):
+		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(inputTemperature)}),'withCBOR'))		
+
 	#Method to encode given data with cobs.
 	#Takes two parameters as input:
 	#	-data: The data that should be encoded.

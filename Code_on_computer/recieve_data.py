@@ -41,6 +41,8 @@ if __name__ == "__main__":
 
         data=b''
 
+        startTime=time.time()
+
         #Sends and reads the data in an infinite loop.
         while True:
 
@@ -52,55 +54,53 @@ if __name__ == "__main__":
 
                 settingsFile.close()
 
-                temp=controller.sendRandomTemperature()
-                tempString="%.2f" % temp
+                if time.time()-startTime>settingsSampleTime/1000:
+                        temp=controller.sendRandomTemperature()
+                        tempString="%.2f" % temp
 
                 #Read the answer of the Arduino with Cbor and Cobs.
-                if controller.serialPort.in_waiting:
-                        while controller.serialPort.in_waiting:
+                while controller.serialPort.in_waiting:
+                        
+                        recievedByte=controller.serialPort.read()
+                        
+                        if recievedByte==b'\x00':
+                                #print(data)
+                                #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
+                                #If this is not the case than the communication goes to shit.
+                                obj=cbor2.loads(cobs.decode(data))
                                 
-                                recievedByte=controller.serialPort.read()
-                                
-                                if recievedByte==b'\x00':
-                                        #print(data)
-                                        #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
-                                        #If this is not the case than the communication goes to shit.
-                                        obj=cbor2.loads(cobs.decode(data))
-                                        
-                                        if obj==cbor2.CBORSimpleValue(0):
-                                                obj=0
+                                if obj==cbor2.CBORSimpleValue(0):
+                                        obj=0
 
-                                        #This part is needed if the number 0.0 is send.
-                                        #0.0 will not be recognized as a 32 bit floating point number but as a SimpleValue.
-                                        #This is the case because simple values and floating point numbers have the same major type in CBOR.
-                                        """
-                                        if obj==cbor2.CBORSimpleValue(0):
-                                                if type(objectBefore) is int:
-                                                        fileToWrite.write(str(datetime.now())[:19]+"   "+str(temp)+"   "+str(obj)+"\n")
-                                                print(0, end='', flush=True)
-                                                objectBefore=0
-                                        """
-                                        if type(obj) is int:
-                                                fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
-                                                print(obj, end='', flush=True)
+                                #This part is needed if the number 0.0 is send.
+                                #0.0 will not be recognized as a 32 bit floating point number but as a SimpleValue.
+                                #This is the case because simple values and floating point numbers have the same major type in CBOR.
+                                """
+                                if obj==cbor2.CBORSimpleValue(0):
+                                        if type(objectBefore) is int:
+                                                fileToWrite.write(str(datetime.now())[:19]+"   "+str(temp)+"   "+str(obj)+"\n")
+                                        print(0, end='', flush=True)
+                                        objectBefore=0
+                                """
+                                if type(obj) is int:
+                                        fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
+                                        print(obj, end='', flush=True)
 
-                                        #Floats will be rounded to two numbers after the comma.
-                                        elif type(obj) is float:
-                                                fileToWrite.write(str(obj)+"\n")
-                                                print("%.2f" % obj, end='', flush=True)
+                                #Floats will be rounded to two numbers after the comma.
+                                elif type(obj) is float:
+                                        fileToWrite.write(str(obj)+"\n")
+                                        print("%.2f" % obj, end='', flush=True)
 
-                                        #All the other datatypes are printed normally.
-                                        else:   
-                                                if obj != "\n":
-                                                        fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj))
-                                                print(obj, end='', flush=True)
+                                #All the other datatypes are printed normally.
+                                else:   
+                                        if obj != "\n":
+                                                fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj))
+                                        print(obj, end='', flush=True)
 
-                                        #Reinitialize the bytearray for new data.
-                                        data=b''
-                                else:
-                                        data = data + recievedByte
-                
+                                #Reinitialize the bytearray for new data.
+                                data=b''
+                        else:
+                                data = data + recievedByte
+        
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-                time.sleep(settingsSampleTime/1000)
-
 fileToWrite.close()
