@@ -56,20 +56,31 @@ class PIDSender:
 		#Baudrate of the communication.
 		self.baudRate = 115200
 		
+		self.startKp = 383.04
+		self.startKi = 0.5
+		self.startKd = 2.0
+		self.startLowerOutputLimit = 0.0
+		self.startUpperOutputLimit = 4095.0
+		self.startMode = 1
+		self.startSampleTime = 1000
+		self.startDirection = 1
+		self.startSetpoint = 22.50
+		self.startOutput = 0.0
+
 		#Initale values of the PID controller.
-		self.kp = 0.0
-		self.ki = 0.0
-		self.kd = 0.0
-		self.lowerOutputLimit = 0.0
-		self.upperOutputLimit = 4095.0
-		self.mode = 1
-		self.sampleTime = 1000
-		self.direction = 0
-		self.setpoint = 22.50
-		self.output = -1.0
+		self.kp = self.startKp
+		self.ki = self.startKi
+		self.kd = self.startKd
+		self.lowerOutputLimit = self.startLowerOutputLimit
+		self.upperOutputLimit = self.startUpperOutputLimit
+		self.mode = self.startMode
+		self.sampleTime = self.startSampleTime
+		self.direction = self.startDirection
+		self.setpoint = self.startSetpoint
+		self.output = self.startOutput
 
 		#List of the settings that are saved in the settings.txt file.
-		self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
+		self.settingsList=[str(self.startKp)+"\n",str(self.startKi)+"\n",str(self.startKp)+"\n",str(self.startLowerOutputLimit)+"\n",str(self.startUpperOutputLimit)+"\n",str(self.startMode)+"\n",str(self.startSampleTime)+"\n",str(self.startDirection)+"\n",str(self.startSetpoint)+"\n",str(self.startOutput)]
 		
 		#Floating point numbers send as integers using fixed point arithmetic.
 		self.fixedPoint=16
@@ -139,11 +150,25 @@ class PIDSender:
 		Works the same as the floating point values without the conversion at the beginning.
 	"""
 	def reset(self):
+		self.changeKp(self.startKp)
+		self.changeKi(self.startKi)
+		self.changeKd(self.startKd)
+		self.changeLowerOutputLimit(self.startLowerOutputLimit)
+		self.changeUpperOutputLimit(self.startUpperOutputLimit)
+		self.changeMode(self.startMode)
+		self.changeDirection(self.startDirection)
+		self.changeSetpoint(self.startSetpoint)
+		self.changeSampleTime(self.startSampleTime)
+		self.output=self.startOutput
+		self.sendNewValues()
+		"""
 		if os.path.exists("settings.txt"):
-			os.remove("settings.txt")
-			print("The existing settings file was removed.")
+			#os.remove("settings.txt")
+			#print("The existing settings file was removed.")
+
 		else:
 			print("Couldn't reset the controller. No settings file has been created.")
+		"""
 
 	def changeKp(self, newKp):
 		if not type(newKp) is float:
@@ -222,8 +247,7 @@ class PIDSender:
 		intValue=self.fixedPointFloatToInt(newOutput)
 		if newOutput < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-		if not intValue == self.fixedPointFloatToInt(self.output):
-			self.dataToSend[10]=intValue
+		self.dataToSend[10]=intValue
 
 	#Method to send the temperature of the Tinkerforge Bricklet to the controller.
 	def sendTemperature(self):
@@ -271,6 +295,7 @@ class PIDSender:
 	"""
 	All the getter methods.
 	"""
+	"""
 	def getKp(self):
 		return self.kp
 
@@ -312,7 +337,7 @@ class PIDSender:
 
 	def getBuffer(self):
 		return self.dataToSend
-
+	"""
 	#This method is here to print all the current settings of the controller to the console.
 	def printEverything(self):
 		print("The value of Kp is: %.2f" % (self.kp))
@@ -410,7 +435,6 @@ class PIDSender:
 		self.dataToSend={}
 		
 		with open("settings.txt","w") as settings:
-			#print(self.settingsList)
 			settings.writelines(self.settingsList)
 
 		if encodedLength >= 100:

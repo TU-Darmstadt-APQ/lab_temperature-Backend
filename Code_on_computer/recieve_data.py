@@ -13,7 +13,7 @@ controller = PIDSender('/dev/ttyACM0')
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
-controller.reset()
+#controller.reset()
 controller.begin()
 #controller.begin()
 controller.changeDirection(1)
@@ -28,6 +28,8 @@ controller.changeSampleTime(1000)
 #controller.changeOutput(100.0)
 controller.sendNewValues()
 
+controller.reset()
+
 #print("\n")
 #controller.printEverything()
 #print("\n")
@@ -35,7 +37,7 @@ controller.sendNewValues()
 fileToWrite=open("/home/tobias/throw_away_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
 fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
+fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.kp)+", ki: "+str(controller.ki)+", kd: "+str(controller.kd)+", setpoint: "+str(controller.setpoint)+" ,sample time: "+str(controller.sampleTime)+" ms"+"\n\n")
 
 if __name__ == "__main__":
 
@@ -43,20 +45,22 @@ if __name__ == "__main__":
 
         startTime=time.time()
 
+        tempString="0"
+
         #Sends and reads the data in an infinite loop.
         while True:
 
-                settingsFile=open("settings.txt","r")
+                #settingsFile=open("settings.txt","r")
 
-                settings=settingsFile.readlines()
+                #settings=settingsFile.readlines()
 
-                settingsSampleTime=float(settings[6][:-1])
-
-                settingsFile.close()
+                settingsSampleTime=controller.sampleTime
 
                 if time.time()-startTime>settingsSampleTime/1000:
                         temp=controller.sendRandomTemperature()
                         tempString="%.2f" % temp
+                        startTime=time.time()
+
 
                 #Read the answer of the Arduino with Cbor and Cobs.
                 while controller.serialPort.in_waiting:
@@ -101,6 +105,5 @@ if __name__ == "__main__":
                                 data=b''
                         else:
                                 data = data + recievedByte
-        
                 #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
 fileToWrite.close()

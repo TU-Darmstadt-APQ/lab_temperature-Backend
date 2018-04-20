@@ -81,6 +81,10 @@ if __name__ == "__main__":
 				if time.time()-startTime>controller1.sampleTime/1000:
 					temp=10*random()+controller1.setpoint
 					tempString="%.2f" % temp
+					buffer1=controller1.getBuffer()
+					buffer2=controller2.getBuffer()
+					fileToWrite.write("\nPi buffer for controller1: "+str(datetime.now())[:19]+","+str(buffer1)+"\n")
+					fileToWrite.write("Pi buffer for controller2: "+str(datetime.now())[:19]+","+str(buffer2)+"\n\n")
 					#print(temp)
 					controller1.sendManualTemperature(temp)
 					#print("first temperature send.")
@@ -126,7 +130,7 @@ if __name__ == "__main__":
 
 				#Read the answer of the Arduino with Cbor and Cobs.
 				while controller2.serialPort.in_waiting:
-						
+				
 						recievedByte=controller2.serialPort.read()
 						
 						if recievedByte==b'\x00':

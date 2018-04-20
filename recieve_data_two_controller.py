@@ -95,6 +95,10 @@ if __name__ == "__main__":
 					#Save this for the log-file
 					tempString="%.2f" % temp
 					#Send the temperature
+					buffer1=controller1.getBuffer()
+					buffer2=controller2.getBuffer()
+					fileToWrite.write("\nPi buffer for controller1: "+str(datetime.now())[:19]+","+str(buffer1)+"\n")
+					fileToWrite.write("Pi buffer for controller2: "+str(datetime.now())[:19]+","+str(buffer2)+"\n\n")
 					controller1.sendManualTemperature(temp)
 					controller2.sendManualTemperature(temp)
 					startTime=time.time()
