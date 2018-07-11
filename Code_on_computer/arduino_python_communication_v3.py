@@ -36,8 +36,14 @@ from tinkerforge.bricklet_temperature import BrickletTemperature
 #To send temperature without a Tinkerforge sensor
 from random import random
 #To check if a settings.txt file exists
-import os.path
+#import os.path
 import os
+from flask import Flask, request, session, g, redirect, url_for, abort, \
+     render_template, flash
+from wtforms import Form, BooleanField, StringField, DecimalField, IntegerField, PasswordField, validators
+from flask_wtf import FlaskForm
+import threading
+from threading import Thread
  
 
 #Constructor of the PIDSender class. Only takes the device directory of the controller as input (e.g. /dev/ttyACM0).
@@ -49,6 +55,8 @@ class PIDSender:
 		self.uid=0
 		self.ipcon=0
 		self.tempBricklet=0
+
+		self.app = Flask(__name__) # create the application instance for the webserver.
 		
 		#The data that will be send is saved in this dict.
 		self.dataToSend = {}
@@ -133,6 +141,8 @@ class PIDSender:
 			print("Serial port was already open.")
 		time.sleep(2) # sleep two seconds to make sure the communication is established.
 
+	
+	"""
 	#All the setter methods.
 
 	"""

@@ -39,28 +39,29 @@ fileToWrite=open("/home/tobias/throw_away_data/temperature_data"+(str(datetime.n
 fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
 fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.kp)+", ki: "+str(controller.ki)+", kd: "+str(controller.kd)+", setpoint: "+str(controller.setpoint)+" ,sample time: "+str(controller.sampleTime)+" ms"+"\n\n")
 
-if __name__ == "__main__":
-
+def communication():
         data=b''
 
         startTime=time.time()
 
-        tempString="0"
+        temp=controller.sendTemperature()
+        tempString="%.2f" % temp
 
         #Sends and reads the data in an infinite loop.
         while True:
 
-                #settingsFile=open("settings.txt","r")
+                settingsFile=open("settings.txt","r")
 
-                #settings=settingsFile.readlines()
+                settings=settingsFile.readlines()
 
-                settingsSampleTime=controller.sampleTime
+                settingsSampleTime=float(settings[6][:-1])
 
-                if time.time()-startTime>settingsSampleTime/1000:
-                        temp=controller.sendRandomTemperature()
+                settingsFile.close()
+                
+                if time.time()-startTime>controller.sampleTime/1000:
+                        temp=controller.sendTemperature()
                         tempString="%.2f" % temp
                         startTime=time.time()
-
 
                 #Read the answer of the Arduino with Cbor and Cobs.
                 while controller.serialPort.in_waiting:
@@ -76,16 +77,6 @@ if __name__ == "__main__":
                                 if obj==cbor2.CBORSimpleValue(0):
                                         obj=0
 
-                                #This part is needed if the number 0.0 is send.
-                                #0.0 will not be recognized as a 32 bit floating point number but as a SimpleValue.
-                                #This is the case because simple values and floating point numbers have the same major type in CBOR.
-                                """
-                                if obj==cbor2.CBORSimpleValue(0):
-                                        if type(objectBefore) is int:
-                                                fileToWrite.write(str(datetime.now())[:19]+"   "+str(temp)+"   "+str(obj)+"\n")
-                                        print(0, end='', flush=True)
-                                        objectBefore=0
-                                """
                                 if type(obj) is int:
                                         fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
                                         print(obj, end='', flush=True)
@@ -105,5 +96,96 @@ if __name__ == "__main__":
                                 data=b''
                         else:
                                 data = data + recievedByte
-                #The sample is in the unit ms, but the sleep method takes seconds as input so we have to divide by 1000 additionally if we want to wait half the sampletime we get 500.
-fileToWrite.close()
+
+def hostServer():
+        app.config["SECRET_KEY"]= "secretKey"
+
+        class controllerInterfaceForm(FlaskForm):
+                kp=DecimalField("kp")
+                ki=DecimalField("ki")
+                kd=DecimalField("kd")
+                lowerOutputLimit=DecimalField("lowerOutputLimit")
+                upperOutputLimit=DecimalField("upperOutputLimit")
+                mode=IntegerField("mode")
+                sampleTime=IntegerField("sampleTime")
+                direction=IntegerField("direction")
+                setpoint=DecimalField("setpoint")
+                output=DecimalField("output")
+
+        @app.route("/formTest",methods=["post","get"])
+        def formTest():
+
+                form=controllerInterfaceForm()
+
+                if form.kp.data != None:
+                        controller.changeKp(float(form.kp.data))
+
+                if form.ki.data != None:
+                        controller.changeKi(float(form.ki.data))
+
+                if form.kd.data != None:
+                        controller.changeKd(float(form.kd.data))
+
+                if form.lowerOutputLimit.data != None:
+                        controller.changeLowerOutputLimit(float(form.lowerOutputLimit.data))
+
+                if form.upperOutputLimit.data != None:
+                        controller.changeUpperOutputLimit(float(form.upperOutputLimit.data))
+
+                if form.sampleTime.data != None:
+                        controller.changeSampleTime(int(form.sampleTime.data))
+
+                if form.setpoint.data != None:
+                        controller.changeSetpoint(float(form.setpoint.data))
+
+                if form.output.data != None:
+                        #print(form.output.data)
+                        if controller.mode==0:
+                                controller.changeOutput(float(form.output.data))
+                        else:
+                                pass
+
+                if request.form.get("mode") == "AUTOMATIC":
+                        controller.changeMode(int(1))
+                elif request.form.get("mode") == "MANUAL":
+                        controller.changeMode(int(0))
+                else:
+                        pass
+
+                if request.form.get("direction") == "REVERSE":
+                        controller.changeDirection(int(1))
+                elif request.form.get("direction") == "DIRECT":
+                        controller.changeDirection(int(0))
+                else:
+                        pass
+
+                if bool(controller.getBuffer()):
+                        controller.sendNewValues()
+
+                kpValue="%.2f" % (controller.kp)
+                kiValue="%.2f" % (controller.ki)
+                kdValue="%.2f" % (controller.kd)
+                lowerOutputLim="%.2f" % (controller.getLowerOutputLimit())
+                upperOutputLim="%.2f" % (controller.getUpperOutputLimit())
+                sampleTimeValue="%.2f" % (controller.getSampleTime())
+                setpointValue="%.2f" % (controller.getSetpoint())
+                outputValue="%.2f" % (controller.getOutput())
+                
+                if controller.getMode()==0:
+                        modeValue="disabled"
+                else:
+                        modeValue="enabled"
+
+                if controller.getDirection()==0:
+                        directionValue="direct"
+                else:
+                        directionValue="reverse"
+
+                return(render_template("form_test.html",form=form,kpValue=kpValue,kiValue=kiValue,kdValue=kdValue,lol=lowerOutputLim,uol=upperOutputLim,setpointValue=setpointValue,sampleTimeValue=sampleTimeValue,outputValue=outputValue,modeValue=modeValue,directionValue=directionValue))
+
+        app.run(debug=True)
+
+if __name__ == "__main__":
+        Thread(target = func1).start()
+        Thread(target = func2).start()
+        fileToWrite.close()

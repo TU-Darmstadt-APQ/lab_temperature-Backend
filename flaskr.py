@@ -7,7 +7,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 from wtforms import Form, BooleanField, StringField, DecimalField, IntegerField, PasswordField, validators
 from flask_wtf import FlaskForm
 from arduino_python_communication_v3 import *
-
+from recieve_data import controller
 
 app = Flask(__name__) # create the application instance :)
 app.config["SECRET_KEY"]= "secretKey"
@@ -25,7 +25,7 @@ class controllerInterfaceForm(FlaskForm):
 	output=DecimalField("output")
 
 
-controller = PIDSender('/dev/ttyACM0')
+#controller = PIDSender('/dev/ttyACM0')
 controller.begin()
 
 

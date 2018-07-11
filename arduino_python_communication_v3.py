@@ -34,7 +34,7 @@ import cbor2
 from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
 from tinkerforge.bricklet_humidity_v2 import BrickletHumidityV2
-from tinkerforge.bricklet_bricklet import BrickletHumidity
+from tinkerforge.bricklet_humidity import BrickletHumidity
 #To send temperature without a Tinkerforge sensor
 from random import random
 #To check if a settings.txt file exists
@@ -52,6 +52,7 @@ class PIDSender:
 		self.ipcon=0
 		self.bricklet=0
 		self.sensorType=0
+		self.type="temperature"
 		
 		#The data that will be send is saved in this dict.
 		self.dataToSend = {}
@@ -83,7 +84,7 @@ class PIDSender:
 	#Before a communciation can be established the begin()-method has to be called.
 	#It takes an optional parameter which is the UID of the Tinkerforge temperature sensor (e.g. "zih").
 	#Type is the type of the sensor 
-	def begin(self,*sensorUID,*type,**keywordParameters):
+	def begin(self,*args,**keywordParameters):
 		#The settings are saved in a settings.txt file.
 		#If the settings file does not exist, we have to create one.
 		if not os.path.exists("settings.txt"):
@@ -115,12 +116,12 @@ class PIDSender:
 			self.uid=keywordParameters["sensorUID"]
 			self.type=keywordParameters["type"]
 			self.ipcon = IPConnection()
-			if self.type="temperature":
+			if self.type=="temperature":
 				self.bricklet = BrickletTemperature(self.uid,self.ipcon)
-			elif self.type="humidity":
+			elif self.type=="humidity":
 				self.bricklet = BrickletHumidity(self.uid,self.ipcon)
 			else:
-				self.bricklet:
+				print("No specific Bricklet passed, default to Temperature Bricklet.")
 				self.bricklet= BrickletTemperature(self.uid,self.ipcon)
 			self.ipcon.connect(self.host,self.port)
 		
