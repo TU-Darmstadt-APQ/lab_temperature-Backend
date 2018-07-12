@@ -73,7 +73,7 @@ class PIDSender:
 		self.startSampleTime = 1000
 		self.startDirection = 1
 		self.startSetpoint = 22.50
-		self.startOutput = 0.0
+		self.startOutput = -1.0
 
 		#Initale values of the PID controller.
 		self.kp = self.startKp
@@ -141,11 +141,8 @@ class PIDSender:
 			print("Serial port was already open.")
 		time.sleep(2) # sleep two seconds to make sure the communication is established.
 
-	
 	"""
-	#All the setter methods.
 
-	"""
 	The following methods are all needed to change the parameters of the controller.
 	They are mostly the same the only difference is if they take floating point numbers or integers as input.
 	These methods work as follows.

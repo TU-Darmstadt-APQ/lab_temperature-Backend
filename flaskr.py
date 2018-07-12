@@ -1,4 +1,4 @@
-#!//home/tobias/anaconda3/bin/python3
+#!/home/tobias/anaconda3/bin/python3
 
 import os
 #import sqlite3
