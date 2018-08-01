@@ -69,7 +69,7 @@ if __name__ == "__main__":
                                 if type(obj) is int:
                                         fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
                                         print(obj, end='', flush=True)
-                                        time.sleep(controller.sampleTime/2000)
+                                        #time.sleep(controller.sampleTime/2000)
 
                                 #Floats will be rounded to two numbers after the comma.
                                 elif type(obj) is float:
@@ -86,4 +86,7 @@ if __name__ == "__main__":
                                 data=b''
                         else:
                                 data = data + recievedByte
+                #Sleep the script to reduce the cpu load.
+                #0.001 is the minimal sample time of the controller.
+                time.sleep(0.001)
 fileToWrite.close()
