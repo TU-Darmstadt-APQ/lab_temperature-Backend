@@ -14,14 +14,14 @@ controller = PIDSender('/dev/ttyACM0')
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
 controller.reset()
-controller.begin(SensorUID="zih")
+controller.begin(sensorUID="DhJ",type="humidity")
 #controller.begin()
 controller.changeDirection(1)
 controller.changeKp(383.0)
 controller.changeKi(0.5)
 controller.changeKd(2.0)
 controller.changeMode(1)
-controller.changeSetpoint(22.50)
+controller.changeSetpoint(24.00)
 controller.changeLowerOutputLimit(0.0)
 controller.changeUpperOutputLimit(4095.0)
 controller.changeSampleTime(1000)
@@ -40,22 +40,12 @@ fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.
 if __name__ == "__main__":
 
         data=b''
-
         startTime=time.time()
-
         temp=controller.sendTemperature()
         tempString="%.2f" % temp
 
         #Sends and reads the data in an infinite loop.
         while True:
-
-                settingsFile=open("settings.txt","r")
-
-                settings=settingsFile.readlines()
-
-                settingsSampleTime=float(settings[6][:-1])
-
-                settingsFile.close()
                 
                 if time.time()-startTime>controller.sampleTime/1000:
                         temp=controller.sendTemperature()
@@ -79,6 +69,7 @@ if __name__ == "__main__":
                                 if type(obj) is int:
                                         fileToWrite.write(str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
                                         print(obj, end='', flush=True)
+                                        time.sleep(controller.sampleTime/2000)
 
                                 #Floats will be rounded to two numbers after the comma.
                                 elif type(obj) is float:

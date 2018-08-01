@@ -110,10 +110,11 @@ if __name__ == "__main__":
         communicate(7)
 
         print("\n")
-        print("Testing manual mode.")
+        print("Testing manual mode for 5 cycles.")
         print("\n")
 
         controller.changeMode(0)
         controller.changeOutput(100*randomNumber)
         controller.sendNewValues()
+
         communicate(7)

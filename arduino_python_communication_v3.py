@@ -87,6 +87,7 @@ class PIDSender:
 	def begin(self,*args,**keywordParameters):
 		#The settings are saved in a settings.txt file.
 		#If the settings file does not exist, we have to create one.
+		#print("Begin function was called. With the keywords: "+str(keywordParameters["sensorUID"])+","+str(keywordParameters["type"]))
 		if not os.path.exists("settings.txt"):
 			print("Have to create a file.")
 			#Open and closing the file with the parameter "w" will create a new file.
@@ -119,7 +120,7 @@ class PIDSender:
 			if self.type=="temperature":
 				self.bricklet = BrickletTemperature(self.uid,self.ipcon)
 			elif self.type=="humidity":
-				self.bricklet = BrickletHumidity(self.uid,self.ipcon)
+				self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
 			else:
 				print("No specific Bricklet passed, default to Temperature Bricklet.")
 				self.bricklet= BrickletTemperature(self.uid,self.ipcon)
