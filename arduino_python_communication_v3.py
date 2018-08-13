@@ -19,7 +19,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 @author Tobias Liebmann
-@version 2.0.0 03/26/2018
+@version 2.0.0 03/26/2017
 """
 
 #Build a serial communication
@@ -33,13 +33,16 @@ import cbor2
 #To get the temperature data
 from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
-from tinkerforge.bricklet_humidity_v2 import BrickletHumidityV2
-from tinkerforge.bricklet_humidity import BrickletHumidity
 #To send temperature without a Tinkerforge sensor
 from random import random
 #To check if a settings.txt file exists
-import os.path
 import os
+from flask import Flask, request, session, g, redirect, url_for, abort, \
+     render_template, flash
+from wtforms import Form, BooleanField, StringField, DecimalField, IntegerField, PasswordField, validators
+from flask_wtf import FlaskForm
+import threading
+from threading import Thread
  
 
 #Constructor of the PIDSender class. Only takes the device directory of the controller as input (e.g. /dev/ttyACM0).
@@ -50,9 +53,9 @@ class PIDSender:
 		self.port=4223
 		self.uid=0
 		self.ipcon=0
-		self.bricklet=0
-		self.sensorType=0
-		self.type="temperature"
+		self.tempBricklet=0
+
+		self.app = Flask(__name__) # create the application instance for the webserver.
 		
 		#The data that will be send is saved in this dict.
 		self.dataToSend = {}
@@ -60,20 +63,31 @@ class PIDSender:
 		#Baudrate of the communication.
 		self.baudRate = 115200
 		
+		self.startKp = 383.04
+		self.startKi = 0.5
+		self.startKd = 2.0
+		self.startLowerOutputLimit = 0.0
+		self.startUpperOutputLimit = 4095.0
+		self.startMode = 1
+		self.startSampleTime = 1000
+		self.startDirection = 1
+		self.startSetpoint = 22.50
+		self.startOutput = -1.0
+
 		#Initale values of the PID controller.
-		self.kp = 0.0
-		self.ki = 0.0
-		self.kd = 0.0
-		self.lowerOutputLimit = 0.0
-		self.upperOutputLimit = 4095.0
-		self.mode = 1
-		self.sampleTime = 1000
-		self.direction = 0
-		self.setpoint = 22.50
-		self.output = -1.0
+		self.kp = self.startKp
+		self.ki = self.startKi
+		self.kd = self.startKd
+		self.lowerOutputLimit = self.startLowerOutputLimit
+		self.upperOutputLimit = self.startUpperOutputLimit
+		self.mode = self.startMode
+		self.sampleTime = self.startSampleTime
+		self.direction = self.startDirection
+		self.setpoint = self.startSetpoint
+		self.output = self.startOutput
 
 		#List of the settings that are saved in the settings.txt file.
-		self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
+		self.settingsList=[str(self.startKp)+"\n",str(self.startKi)+"\n",str(self.startKp)+"\n",str(self.startLowerOutputLimit)+"\n",str(self.startUpperOutputLimit)+"\n",str(self.startMode)+"\n",str(self.startSampleTime)+"\n",str(self.startDirection)+"\n",str(self.startSetpoint)+"\n",str(self.startOutput)]
 		
 		#Floating point numbers send as integers using fixed point arithmetic.
 		self.fixedPoint=16
@@ -83,11 +97,9 @@ class PIDSender:
 	
 	#Before a communciation can be established the begin()-method has to be called.
 	#It takes an optional parameter which is the UID of the Tinkerforge temperature sensor (e.g. "zih").
-	#Type is the type of the sensor 
-	def begin(self,*args,**keywordParameters):
+	def begin(self,*SensorUID,**keyword_parameters):
 		#The settings are saved in a settings.txt file.
 		#If the settings file does not exist, we have to create one.
-		#print("Begin function was called. With the keywords: "+str(keywordParameters["sensorUID"])+","+str(keywordParameters["type"]))
 		if not os.path.exists("settings.txt"):
 			print("Have to create a file.")
 			#Open and closing the file with the parameter "w" will create a new file.
@@ -113,17 +125,10 @@ class PIDSender:
 		settings.close()
 
 		#Start the connection with the Tinkerforge sensor
-		if "sensorUID" in keywordParameters and "type" in keywordParameters:
-			self.uid=keywordParameters["sensorUID"]
-			self.type=keywordParameters["type"]
+		if "SensorUID" in keyword_parameters:
+			self.uid=keyword_parameters["SensorUID"]
 			self.ipcon = IPConnection()
-			if self.type=="temperature":
-				self.bricklet = BrickletTemperature(self.uid,self.ipcon)
-			elif self.type=="humidity":
-				self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
-			else:
-				print("No specific Bricklet passed, default to Temperature Bricklet.")
-				self.bricklet= BrickletTemperature(self.uid,self.ipcon)
+			self.tempBricklet = BrickletTemperature(self.uid,self.ipcon)
 			self.ipcon.connect(self.host,self.port)
 		
 		#self.serialPort.close()
@@ -135,10 +140,8 @@ class PIDSender:
 			print("Serial port was already open.")
 		time.sleep(2) # sleep two seconds to make sure the communication is established.
 
-
-	#All the setter methods.
-
 	"""
+
 	The following methods are all needed to change the parameters of the controller.
 	They are mostly the same the only difference is if they take floating point numbers or integers as input.
 	These methods work as follows.
@@ -153,11 +156,25 @@ class PIDSender:
 		Works the same as the floating point values without the conversion at the beginning.
 	"""
 	def reset(self):
+		self.changeKp(self.startKp)
+		self.changeKi(self.startKi)
+		self.changeKd(self.startKd)
+		self.changeLowerOutputLimit(self.startLowerOutputLimit)
+		self.changeUpperOutputLimit(self.startUpperOutputLimit)
+		self.changeMode(self.startMode)
+		self.changeDirection(self.startDirection)
+		self.changeSetpoint(self.startSetpoint)
+		self.changeSampleTime(self.startSampleTime)
+		self.output=self.startOutput
+		self.sendNewValues()
+		"""
 		if os.path.exists("settings.txt"):
-			os.remove("settings.txt")
-			print("The existing settings file was removed.")
+			#os.remove("settings.txt")
+			#print("The existing settings file was removed.")
+
 		else:
 			print("Couldn't reset the controller. No settings file has been created.")
+		"""
 
 	def changeKp(self, newKp):
 		if not type(newKp) is float:
@@ -236,12 +253,11 @@ class PIDSender:
 		intValue=self.fixedPointFloatToInt(newOutput)
 		if newOutput < 0 or intValue > (2**32)-1:
 			raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-		if not intValue == self.fixedPointFloatToInt(self.output):
-			self.dataToSend[10]=intValue
+		self.dataToSend[10]=intValue
 
 	#Method to send the temperature of the Tinkerforge Bricklet to the controller.
 	def sendTemperature(self):
-		temp=self.bricklet.get_temperature()/100
+		temp=self.tempBricklet.get_temperature()/100
 		self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
 		return(temp)
 
@@ -285,6 +301,7 @@ class PIDSender:
 	"""
 	All the getter methods.
 	"""
+
 	def getKp(self):
 		return self.kp
 
@@ -322,7 +339,7 @@ class PIDSender:
 		return self.baudRate
 
 	def getTemperature(self):
-		return self.bricklet.get_temperature()/100
+		return self.tempBricklet.get_temperature()/100
 
 	def getBuffer(self):
 		return self.dataToSend
@@ -424,7 +441,6 @@ class PIDSender:
 		self.dataToSend={}
 		
 		with open("settings.txt","w") as settings:
-			#print(self.settingsList)
 			settings.writelines(self.settingsList)
 
 		if encodedLength >= 100:

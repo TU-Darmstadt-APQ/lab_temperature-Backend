@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/tobias/anaconda3/bin/python3
 
 from arduino_python_communication_v3 import *
 from datetime import datetime
@@ -6,7 +6,7 @@ from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
 
 #Open the ports.
-controller2 = PIDSender('/dev/ttyACM2')
+controller2 = PIDSender('/dev/ttyACM0')
 controller1 = PIDSender('/dev/ttyACM1')
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
@@ -24,10 +24,10 @@ controller2.changeMode(0)
 controller2.changeOutput(0.0)
 
 controller2.changeDirection(1)
-controller2.changeKp(208.6)
-controller2.changeKi(1.88)
-controller2.changeKd(0.0)
-controller2.changeSetpoint(21.50)
+controller2.changeKp(100.0)
+controller2.changeKi(0.1)
+controller2.changeKd(2.0)
+controller2.changeSetpoint(30.00)
 controller2.changeLowerOutputLimit(0.0)
 controller2.changeUpperOutputLimit(4095.0)
 controller2.changeSampleTime(1000)
@@ -40,10 +40,10 @@ controller1.reset()
 controller1.begin()
 
 controller1.changeDirection(1)
-controller1.changeKp(208.6)
-controller1.changeKi(1.88)
-controller1.changeKd(0.0)
-controller1.changeSetpoint(21.50)
+controller1.changeKp(100.0)
+controller1.changeKi(0.1)
+controller1.changeKd(2.0)
+controller1.changeSetpoint(30.00)
 controller1.changeLowerOutputLimit(0.0)
 controller1.changeUpperOutputLimit(4095.0)
 controller1.changeSampleTime(1000)
@@ -53,7 +53,7 @@ print()
 
 
 #Print the settings in the log file.
-fileToWrite=open("/home/pi/Documents/PID_controller/lab_temperature_data/twocontrollerData_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
+fileToWrite=open("/home/tobias/throw_away_data/twocontrollerData_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w')
 
 fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
 fileToWrite.write("The settings of the first controller are:\n"+"kp: "+str(controller1.getKp())+", ki: "+str(controller1.getKi())+", kd: "+str(controller1.getKd())+", setpoint: "+str(controller1.getSetpoint())+" ,sample time: "+str(controller1.getSampleTime())+" ms"+"\n\n")
@@ -61,51 +61,44 @@ fileToWrite.write("The settings of the second controller are:\n"+"kp: "+str(cont
 
 if __name__ == "__main__":
 
-		#Build a connection to the bricklet.
-		HOST="localhost"
-		PORT=4223
-		UID="zHk"
-
-		ipcon = IPConnection()
-		tempBrick = BrickletTemperature(UID,ipcon)
-		ipcon.connect(HOST,PORT)
+		controller1.output=0
 
 		data=b''
 
-		time.sleep(1)
-
-		#Save the at which we started, so that we know when to send new data.
 		startTime=time.time()
+
+		firstTime=True
 
 		#change the mode to automatic, so that both controllers start at zero.
 		controller1.changeMode(1)
-		controller2.changeMode(1)
+		#controller2.changeMode(1)
 		controller1.sendNewValues()
 		controller2.sendNewValues()
 
-		temp=tempBrick.get_temperature()/100
+		temp=10*random()+controller1.setpoint
 		tempString="%.2f" % temp
 
 		#Sends and reads the data in an infinite loop.
 		while True:
-				#Check if the sampletime has passed and we have to send new data
 				if time.time()-startTime>controller1.sampleTime/1000:
-					#Read the temperature.
-					temp=tempBrick.get_temperature()/100
-					#Save this for the log-file
+					temp=10*random()+controller1.setpoint
 					tempString="%.2f" % temp
-					#Send the temperature
 					buffer1=controller1.getBuffer()
 					buffer2=controller2.getBuffer()
 					fileToWrite.write("\nPi buffer for controller1: "+str(datetime.now())[:19]+","+str(buffer1)+"\n")
 					fileToWrite.write("Pi buffer for controller2: "+str(datetime.now())[:19]+","+str(buffer2)+"\n\n")
+					#print(temp)
 					controller1.sendManualTemperature(temp)
+					#print("first temperature send.")
 					controller2.sendManualTemperature(temp)
+					#print("second temperature send.")
 					startTime=time.time()
 
-				#Read the answer of the first controller with Cbor and Cobs.
+				#Read the answer of the Arduino with Cbor and Cobs.
 				while controller1.serialPort.in_waiting:
 						
+						controller2.changeOutput(controller1Output)
+
 						recievedByte=controller1.serialPort.read()
 						
 						if recievedByte==b'\x00':
@@ -117,9 +110,9 @@ if __name__ == "__main__":
 								if obj==cbor2.CBORSimpleValue(0):
 										obj=0
 
-								#For recieving an int.
 								if type(obj) is int:
 										fileToWrite.write("Controller 1:"+str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
+										controller1Output=obj
 										print("Controller 1:",obj, end='', flush=True)
 
 								#Floats will be rounded to two numbers after the comma.
@@ -142,7 +135,7 @@ if __name__ == "__main__":
 
 				#Read the answer of the Arduino with Cbor and Cobs.
 				while controller2.serialPort.in_waiting:
-						
+				
 						recievedByte=controller2.serialPort.read()
 						
 						if recievedByte==b'\x00':

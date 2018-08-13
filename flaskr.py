@@ -1,13 +1,12 @@
-#!/home/tobias/anaconda3/bin/python3
+#!//home/tobias/anaconda3/bin/python3
 
 import os
-#import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 from wtforms import Form, BooleanField, StringField, DecimalField, IntegerField, PasswordField, validators
 from flask_wtf import FlaskForm
 from arduino_python_communication_v3 import *
-from recieve_data import controller
+
 
 app = Flask(__name__) # create the application instance :)
 app.config["SECRET_KEY"]= "secretKey"
@@ -25,11 +24,11 @@ class controllerInterfaceForm(FlaskForm):
 	output=DecimalField("output")
 
 
-#controller = PIDSender('/dev/ttyACM0')
+controller = PIDSender('/dev/ttyACM0')
 controller.begin()
 
 
-@app.route("/",methods=["post","get"])
+@app.route("/formTest",methods=["post","get"])
 def formTest():
 
 	form=controllerInterfaceForm()
@@ -57,7 +56,7 @@ def formTest():
 
 	if form.output.data != None:
 		#print(form.output.data)
-		if controller.getMode()==0:
+		if controller.getMode()==s0:
 			controller.changeOutput(float(form.output.data))
 		else:
 			pass
@@ -84,34 +83,21 @@ def formTest():
 	kdValue="%.2f" % (controller.getKd())
 	lowerOutputLim="%.2f" % (controller.getLowerOutputLimit())
 	upperOutputLim="%.2f" % (controller.getUpperOutputLimit())
-	sampleTimeValue=controller.getSampleTime()
+	sampleTimeValue="%.2f" % (controller.getSampleTime())
 	setpointValue="%.2f" % (controller.getSetpoint())
 	outputValue="%.2f" % (controller.getOutput())
 	
-	checkModeDisabled=0
-	checkModeEnabled=0
-	checkDirectionDirect=0
-	checkDirectionReversed=0
-
 	if controller.getMode()==0:
-		modeValue="manual"
-		checkModeDisabled="true"
-		checkModeEnabled="false"
+		modeValue="disabled"
 	else:
-		modeValue="automatic"
-		checkModeDisabled="false"
-		checkModeEnabled="true"
+		modeValue="enabled"
 
 	if controller.getDirection()==0:
 		directionValue="direct"
-		checkDirectionDirect="true"
-		checkDirectionReversed="false"
 	else:
 		directionValue="reverse"
-		checkDirectionDirect="false"
-		checkDirectionReversed="true"
 
-	return(render_template("form_test.html",form=form,checkModeDisabled=checkModeDisabled,checkModeEnabled=checkModeEnabled,checkDirectionReversed=checkDirectionReversed,checkDirectionDirect=checkDirectionDirect,kpValue=kpValue,kiValue=kiValue,kdValue=kdValue,lol=lowerOutputLim,uol=upperOutputLim,setpointValue=setpointValue,sampleTimeValue=sampleTimeValue,outputValue=outputValue,modeValue=modeValue,directionValue=directionValue))
+	return(render_template("form_test.html",form=form,kpValue=kpValue,kiValue=kiValue,kdValue=kdValue,lol=lowerOutputLim,uol=upperOutputLim,setpointValue=setpointValue,sampleTimeValue=sampleTimeValue,outputValue=outputValue,modeValue=modeValue,directionValue=directionValue))
 
 if __name__ == "__main__":
 	app.run(debug=True)
