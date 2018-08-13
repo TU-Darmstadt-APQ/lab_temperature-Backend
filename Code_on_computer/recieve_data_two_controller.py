@@ -61,6 +61,8 @@ fileToWrite.write("The settings of the second controller are:\n"+"kp: "+str(cont
 
 if __name__ == "__main__":
 
+		controller1.output=0
+
 		data=b''
 
 		startTime=time.time()
@@ -69,7 +71,7 @@ if __name__ == "__main__":
 
 		#change the mode to automatic, so that both controllers start at zero.
 		controller1.changeMode(1)
-		controller2.changeMode(1)
+		#controller2.changeMode(1)
 		controller1.sendNewValues()
 		controller2.sendNewValues()
 
@@ -95,6 +97,8 @@ if __name__ == "__main__":
 				#Read the answer of the Arduino with Cbor and Cobs.
 				while controller1.serialPort.in_waiting:
 						
+						controller2.changeOutput(controller1Output)
+
 						recievedByte=controller1.serialPort.read()
 						
 						if recievedByte==b'\x00':
@@ -108,6 +112,7 @@ if __name__ == "__main__":
 
 								if type(obj) is int:
 										fileToWrite.write("Controller 1:"+str(datetime.now())[:19]+","+tempString+","+str(obj)+"\n")
+										controller1Output=obj
 										print("Controller 1:",obj, end='', flush=True)
 
 								#Floats will be rounded to two numbers after the comma.
