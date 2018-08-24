@@ -37,12 +37,12 @@ controller.sendNewValues()
 #print("\n")
 
 try:
-    fileToWrite=open("/home/pi/lab_temperature_system/Lab_11_temperature_data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 except FileNotFoundError:
     fileToWrite=open("temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
-fileToWrite.write("The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("The settings of the controller are:\n"+"kp: "+str(controller.getKp())+", ki: "+str(controller.getKi())+", kd: "+str(controller.getKd())+", setpoint: "+str(controller.getSetpoint())+" ,sample time: "+str(controller.getSampleTime())+" ms"+"\n\n")
+fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
+fileToWrite.write("# The settings of the controller are:\n"+"kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi()), kd=controller.getKd(), setpoint=controller.getSetpoint(), samping_interval=controller.getSampleTime())
 
 if __name__ == "__main__":
 
