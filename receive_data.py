@@ -22,7 +22,7 @@ controller.changeDirection(False)
 controller.changeKp(383.0)
 controller.changeKi(0.5)
 controller.changeKd(2.0)
-controller.changeSetpoint(24.00)
+controller.changeSetpoint(22.50)
 controller.changeLowerOutputLimit(0.0)
 controller.changeUpperOutputLimit(4095.0)
 controller.changeSampleTime(2000)
@@ -41,8 +41,8 @@ try:
 except FileNotFoundError:
     fileToWrite=open("temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
-fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("# The settings of the controller are:\n"+"kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi()), kd=controller.getKd(), setpoint=controller.getSetpoint(), samping_interval=controller.getSampleTime())
+fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.")
+fileToWrite.write("# The settings of the controller are:\n# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n#\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
 
 if __name__ == "__main__":
 
