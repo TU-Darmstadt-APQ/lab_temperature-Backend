@@ -1,4 +1,4 @@
-#!/home/tobias/anaconda3/bin/python3
+#!/usr/bin/env python3
 
 import os
 #import sqlite3
@@ -114,4 +114,4 @@ def formTest():
 	return(render_template("form_test.html",form=form,checkModeDisabled=checkModeDisabled,checkModeEnabled=checkModeEnabled,checkDirectionReversed=checkDirectionReversed,checkDirectionDirect=checkDirectionDirect,kpValue=kpValue,kiValue=kiValue,kdValue=kdValue,lol=lowerOutputLim,uol=upperOutputLim,setpointValue=setpointValue,sampleTimeValue=sampleTimeValue,outputValue=outputValue,modeValue=modeValue,directionValue=directionValue))
 
 if __name__ == "__main__":
-	app.run(debug=True)
+	app.run(host="0.0.0.0")
