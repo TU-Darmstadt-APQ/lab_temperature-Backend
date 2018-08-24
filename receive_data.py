@@ -16,7 +16,7 @@ controller = PIDSender('/dev/ttyACM0')
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
 #controller.reset()
-controller.begin(sensorUID="DhJ",type="humidity")
+controller.begin(sensorUID="rmg",type="temperature")
 #controller.begin()
 controller.changeDirection(False)
 controller.changeKp(383.0)
