@@ -19,10 +19,10 @@ controller = PIDSender('/dev/ttyACM0')
 controller.begin(sensorUID="rmg",type="temperature")
 #controller.begin()
 controller.changeDirection(False)
-controller.changeKp(383.0)
-controller.changeKi(0.5)
-controller.changeKd(2.0)
-controller.changeSetpoint(22.50)
+controller.changeKp(1000.0)  # was 383.0
+controller.changeKi(2.0)     # was 0.5
+controller.changeKd(10.0)    # was 2.0
+controller.changeSetpoint(22.00)
 controller.changeLowerOutputLimit(0.0)
 controller.changeUpperOutputLimit(4095.0)
 controller.changeSampleTime(2000)
@@ -37,9 +37,9 @@ controller.sendNewValues()
 #print("\n")
 
 try:
-    fileToWrite=open("data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("data/temperature_data_"+(str(datetime.utcnow())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 except FileNotFoundError:
-    fileToWrite=open("temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("temperature_data_"+(str(datetime.utcnow())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.")
 fileToWrite.write("# The settings of the controller are:\n# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n#\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
