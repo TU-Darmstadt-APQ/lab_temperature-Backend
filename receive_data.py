@@ -4,15 +4,26 @@ from arduino_python_communication_v3 import *
 from datetime import datetime
 
 import constants
-#import RPi.GPIO as GPIO
 
 #Set the parameters for the PID controller.
 #Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
 #when there are changes in the input.
 
+controller = None
+controller_ip = os.getenv("CONTROLLER_IP")
+if controller_ip is not None:
+  controller = PIDSenderEthernet(controller_ip)
 
-#controller = PIDSenderSerial('/dev/ttyACM3')
-controller = PIDSenderEthernet("192.168.1.96")
+controller_serial = os.getenv("CONTROLLER_SERIAL")
+if controller_serial is not None:
+  if controller is not None:
+    controller = PIDSenderSerial(controller_serial)
+  else:
+    raise RuntimeError("Error. More than one controller type specified. Aborting.'")
+
+if controller is None:
+  raise RuntimeError("Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environmental variable found. Cannot create controller.")
+
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
