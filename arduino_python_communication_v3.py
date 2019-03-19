@@ -58,10 +58,10 @@ class PIDSender:
         self.bricklet=0
         self.sensorType=0
         self.type="temperature"
-        
+
         #The data that will be send is saved in this dict.
         self.dataToSend = {}
-        
+
         #Initale values of the PID controller.
         self.kp = 0.0
         self.ki = 0.0
@@ -77,13 +77,13 @@ class PIDSender:
 
         #List of the settings that are saved in the settings.txt file.
         self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
-        
+
         #Floating point numbers send as integers using fixed point arithmetic.
         self.fixedPoint=16
-    
+
     #Before a communciation can be established the begin()-method has to be called.
     #It takes an optional parameter which is the UID of the Tinkerforge temperature sensor (e.g. "zih").
-    #Type is the type of the sensor 
+    #Type is the type of the sensor
     def begin(self,*args,**keywordParameters):
         #The settings are saved in a settings.txt file.
         #If the settings file does not exist, we have to create one.
@@ -142,12 +142,16 @@ class PIDSender:
     -integer values:
         Works the same as the floating point values without the conversion at the beginning.
     """
+
     def reset(self):
         if os.path.exists("settings.txt"):
             os.remove("settings.txt")
             print("The existing settings file was removed.")
         else:
             print("Couldn't reset the controller. No settings file has been created.")
+
+    def set_gain(self, value):
+        self.dataToSend[constants.MessageType.set_gain] = value
 
     def changeKp(self, value):
         if not type(value) is int:
@@ -202,7 +206,7 @@ class PIDSender:
 
     def changeSetpoint(self, value):
         if not type(value) is int:
-            raise(TypeError("Setpoint must be of type float."))
+            raise(TypeError("Setpoint must be of type int."))
         if value < 0 or value > (2**32)-1:
             raise(ValueError("The setpoint must be an unsigned int with a maximum size of 32 Bit."))
         self.dataToSend[9]=value    
@@ -507,7 +511,7 @@ class PIDSenderSerial(PIDSender):
         settings.close()
 
         self.dataToSend={}
-        
+
         with open("settings.txt","w") as settings:
             #print(self.settingsList)
             settings.writelines(self.settingsList)
@@ -515,3 +519,4 @@ class PIDSenderSerial(PIDSender):
         if encodedLength >= 100:
             time.sleep(encodedLength/1200)
         return True
+
