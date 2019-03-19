@@ -48,11 +48,11 @@ class PIDSender:
         self.__sequence_number = (self.__sequence_number % 15) + 1
         return self.__sequence_number
 
-    def __init__(self):
+    def __init__(self, sensor_ip='localhost', sensor_port=4223):
         #Stuff that is needed to build a connection with the temperature bricklet.
 #        self.host="192.168.1.94"
-        self.host="localhost"
-        self.port=4223
+        self.host=sensor_ip
+        self.port=sensor_port
         self.uid=0
         self.ipcon=0
         self.bricklet=0
@@ -303,12 +303,12 @@ class PIDSenderEthernet(PIDSender):
     def readByte(self):
         return self.socket.recv(1)
 
-    def __init__(self, ip_adress, port=4223):
-        super().__init__()
+    def __init__(self, controller_ip, controller_port=4223, sensor_ip='localhost', sensor_port=4223):
+        super().__init__(sensor_ip, sensor_port)
 
         import socket
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__socket.connect((ip_adress, port)) 
+        self.__socket.connect((controller_ip, controller_port)) 
 
     #Method to send the temperature of the Tinkerforge Bricklet to the controller.
     def sendTemperature(self):
@@ -418,8 +418,8 @@ class PIDSenderSerial(PIDSender):
     def serial_port(self):
         return self.__serial_port
 
-    def __init__(self, serial_port):
-        super().__init__()
+    def __init__(self, serial_port, sensor_ip='localhost', sensor_port=4223):
+        super().__init__(sensor_ip, sensor_port)
         self.__baudRate = 115200
 
         import serial

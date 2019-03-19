@@ -9,15 +9,20 @@ import constants
 #Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
 #when there are changes in the input.
 
+
 controller = None
+
+sensor_ip = os.getenv("SENSOR_IP", "localhost")
+sensor_port = os.getenv("SENSOR_PORT", 4223)
 controller_ip = os.getenv("CONTROLLER_IP")
+controller_port = os.getenv("CONTROLLER_PORT", 4223)
 if controller_ip is not None:
-  controller = PIDSenderEthernet(controller_ip)
+  controller = PIDSenderEthernet(controller_ip=controller_ip, controller_port=controller_port, sensor_ip=sensor_ip, sensor_port=sensor_port)
 
 controller_serial = os.getenv("CONTROLLER_SERIAL")
 if controller_serial is not None:
   if controller is not None:
-    controller = PIDSenderSerial(controller_serial)
+    controller = PIDSenderSerial(serial_port=controller_serial, sensor_ip=sensor_ip, sensor_port=sensor_port)
   else:
     raise RuntimeError("Error. More than one controller type specified. Aborting.'")
 
@@ -50,9 +55,9 @@ controller.sendNewValues()
 #print("\n")
 
 try:
-    fileToWrite=open("data/temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("data/temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 except FileNotFoundError:
-    fileToWrite=open("temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
 fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
