@@ -22,8 +22,6 @@
 @version 2.0.0 03/26/2018
 """
 
-#Build a serial communication
-import serial
 #To save the time in the log file
 import time
 #For COBSing stuff
@@ -50,8 +48,9 @@ class PIDSender:
         self.__sequence_number = (self.__sequence_number % 15) + 1
         return self.__sequence_number
 
-    def __init__(self, initSerialPort):
+    def __init__(self):
         #Stuff that is needed to build a connection with the temperature bricklet.
+#        self.host="192.168.1.94"
         self.host="localhost"
         self.port=4223
         self.uid=0
@@ -59,19 +58,16 @@ class PIDSender:
         self.bricklet=0
         self.sensorType=0
         self.type="temperature"
-
+        
         #The data that will be send is saved in this dict.
         self.dataToSend = {}
-
-        #Baudrate of the communication.
-        self.baudRate = 115200
-
+        
         #Initale values of the PID controller.
         self.kp = 0.0
         self.ki = 0.0
         self.kd = 0.0
         self.lowerOutputLimit = 0.0
-        self.upperOutputLimit = 4095.0
+        self.upperOutputLimit = 4095
         self.mode = 1
         self.sampleTime = 1000
         self.direction = True
@@ -81,16 +77,13 @@ class PIDSender:
 
         #List of the settings that are saved in the settings.txt file.
         self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
-
+        
         #Floating point numbers send as integers using fixed point arithmetic.
         self.fixedPoint=16
-
-        #Serial port used for the communication.
-        self.serialPort = serial.Serial(initSerialPort,self.baudRate)
-
+    
     #Before a communciation can be established the begin()-method has to be called.
     #It takes an optional parameter which is the UID of the Tinkerforge temperature sensor (e.g. "zih").
-    #Type is the type of the sensor
+    #Type is the type of the sensor 
     def begin(self,*args,**keywordParameters):
         #The settings are saved in a settings.txt file.
         #If the settings file does not exist, we have to create one.
@@ -133,16 +126,6 @@ class PIDSender:
                 self.bricklet= BrickletTemperature(self.uid,self.ipcon)
             self.ipcon.connect(self.host,self.port)
 
-        #self.serialPort.close()
-        #Open the serial port if it was not open already.
-        if not self.serialPort.isOpen():
-            self.serialPort.open()
-            print("Serial port opened.")
-        else:
-            print("Serial port was already open.")
-        time.sleep(1) # sleep two seconds to make sure the communication is established.
-
-
     #All the setter methods.
 
     """
@@ -166,65 +149,63 @@ class PIDSender:
         else:
             print("Couldn't reset the controller. No settings file has been created.")
 
-    def changeKp(self, newKp):
-        if not type(newKp) is float:
-            raise(TypeError("Kp must be of type float."))
-        intValue=self.fixedPointFloatToInt(newKp)
-        if newKp < 0 or intValue > (2**32)-1:
+    def changeKp(self, value):
+        if not type(value) is int:
+            raise(TypeError("Kp must be of type int."))
+        if value < 0 or value > (2**32)-1:
             raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[1]=intValue
+        self.dataToSend[1]=value
 
-    def changeKi(self, newKi):
-        if not type(newKi) is float:
-            raise(TypeError("Ki must be of type float."))
-        intValue=self.fixedPointFloatToInt(newKi)
-        if newKi < 0 or intValue > (2**32)-1:
+    def changeKi(self, value):
+        if not type(value) is int:
+            raise(TypeError("Ki must be of type int."))
+        if value < 0 or value > (2**32)-1:
             raise(ValueError("Ki must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[2]=intValue
+        self.dataToSend[2]=value
 
-    def changeKd(self, newKd):
-        if not type(newKd) is float:
-            raise(TypeError("Kp must be of type float."))
-        intValue=self.fixedPointFloatToInt(newKd)
-        if newKd < 0 or intValue > (2**32)-1:
-            raise(ValueError("Kp must be greater than 0 and smaller than 32 bit after fixed point conversion."))
-        self.dataToSend[3]=intValue
+    def changeKd(self, value):
+        if not type(value) is int:
+            raise(TypeError("Kp must be of type int."))
+        if value < 0 or value > (2**32) -1:
+            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
+        self.dataToSend[3]=value
 
 
-    def changeLowerOutputLimit(self, newLowerOutputLimit):
-        if not type(newLowerOutputLimit) is float:
-            raise(TypeError("Lower output limit must be of type float"))
-        intValue=self.fixedPointFloatToInt(newLowerOutputLimit)
-        self.dataToSend[4]=intValue
+    def changeLowerOutputLimit(self, value):
+        if not type(value) is int:
+            raise(TypeError("Lower output limit must be of type int"))
+        if value < 0 or value > (2**32) -1:
+            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
+        self.dataToSend[4] = value
 
-    def changeUpperOutputLimit(self, newUpperOutputLimit):
-        if not type(newUpperOutputLimit) is float:
-            raise(TypeError("Upper output limit must be of type float"))
-        intValue=self.fixedPointFloatToInt(newUpperOutputLimit)
-        self.dataToSend[5]=intValue
+    def changeUpperOutputLimit(self, value):
+        if not type(value) is int:
+            raise(TypeError("Upper output limit must be of type int"))
+        if value < 0 or value > (2**32) -1:
+            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
+        self.dataToSend[5] = value
 
     def changeMode(self, newMode):
         self.dataToSend[6]=newMode
 
-    def changeSampleTime(self, newSampleTime):
-        if not type(newSampleTime) is int:
+    def changeSampleTime(self, value):
+        if not type(value) is int:
             raise TypeError("The sample time must be of type int.")
-        if newSampleTime < 0 or newSampleTime > (2**32) -1:
-            raise ValueError("the sample time must be an unsigned int with a maximal length of 32 Bit.")
-        self.dataToSend[constants.MessageCodes.set_timeout] = newSampleTime
+        if value < 0 or value > (2**32) -1:
+            raise ValueError("the sample time must be an unsigned int with a maximum size of 32 Bit.")
+        self.dataToSend[constants.MessageType.set_timeout] = value
 
     def changeDirection(self, newDirection):
         if not (newDirection==1 or newDirection==0):
             raise(ValueError("The direction must be either 0 or 1."))
         self.dataToSend[8]=newDirection
 
-    def changeSetpoint(self, newSetpoint):
-        if not type(newSetpoint) is float:
-            raise(TypeError("Kp must be of type float."))
-        intValue=self.fixedPointFloatToInt(newSetpoint)
-        if newSetpoint < 0 or intValue > (2**32)-1:
-            raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[9]=intValue
+    def changeSetpoint(self, value):
+        if not type(value) is int:
+            raise(TypeError("Setpoint must be of type float."))
+        if value < 0 or value > (2**32)-1:
+            raise(ValueError("The setpoint must be an unsigned int with a maximum size of 32 Bit."))
+        self.dataToSend[9]=value    
 
     def changeOutput(self, newOutput):
         if not type(newOutput) is float:
@@ -233,33 +214,6 @@ class PIDSender:
         if newOutput < 0 or intValue > (2**32)-1:
             raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
         self.dataToSend[10]=intValue
-
-    #Method to send the temperature of the Tinkerforge Bricklet to the controller.
-    def sendTemperature(self):
-        temp = self.getTemperature()
-        self.serialPort.write(self.encodeWithCobs(cbor2.dumps({
-            constants.MessageCodes.sequence_number: self.sequence_number,
-            constants.MessageCodes.set_input: self.fixedPointFloatToInt(temp),
-          }),'withCBOR'))
-        return temp
-
-    #Sends a random temperature to the controller.
-    #No connection with a Tinkerforge bricklet is needed for this method to work.
-    #This method is mostly used for testing the communication between the controller and the Computer.
-    def sendRandomTemperature(self):
-        temp=random()
-        #if the direction is 1 (direct)
-        if self.direction==0:
-            temp=self.setpoint-10*temp
-        #if the direction is 0 (reverse)
-        else:
-            temp=self.setpoint+10*temp
-        self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(temp)}),'withCBOR'))
-        return(temp)
-
-    #Sends a specific temperature to controller that the user acn choose.
-    def sendManualTemperature(self,inputTemperature):
-        self.serialPort.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(inputTemperature)}),'withCBOR'))
 
     #Method to encode given data with cobs.
     #Takes two parameters as input:
@@ -320,7 +274,7 @@ class PIDSender:
         return self.baudRate
 
     def getTemperature(self):
-        return self.bricklet.get_temperature()/100
+        return int((self.bricklet.get_temperature()/100 + 40) / 165 * 2**16)
 
     def getBuffer(self):
         return self.dataToSend
@@ -337,9 +291,33 @@ class PIDSender:
         print("The direction is: ",self.direction)
         print("The setpoint is: %.2f" % (self.setpoint))
 
+class PIDSenderEthernet(PIDSender):
+    @property
+    def socket(self):
+        return self.__socket
+
+    def readByte(self):
+        return self.socket.recv(1)
+
+    def __init__(self, ip_adress, port=4223):
+        super().__init__()
+
+        import socket
+        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__socket.connect((ip_adress, port)) 
+
+    #Method to send the temperature of the Tinkerforge Bricklet to the controller.
+    def sendTemperature(self):
+        temperature  = self.getTemperature()
+        self.__socket.send(self.encodeWithCobs(cbor2.dumps({
+            constants.MessageType.sequence_number: self.sequence_number,
+            constants.MessageType.set_input: temperature,
+          }),'withCBOR'))
+        return temperature
+
     """
     This method is were the magic happens.
-    After the methods to change the parameters are called one has to call this function to send the dict with
+    After the methods to change the parameters are called one has to call this function to send the dict with 
     the new values.
     First a test is performed if new upper and lower output limits are in the dict. If this is the case it is checked
     if the lower output limit is smaller than the upper output limit, if this is the case an error is thrown.
@@ -347,29 +325,29 @@ class PIDSender:
     After that a test is performed to see if an output was written without the controller beginning turned of.
 
     Next the dict dataToSend is encoded and it is checked if the length is smaller than 255 bytes.
-
+    
     After that the changed data is written in to the settings.txt file and the data is send to the controller.
-
+    
     In the last step the values of the controller are updated, the dict is reset and the method returns true if no errors
-    have occured.
+    have occured.   
     """
     def sendNewValues(self):
         if 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[4] >= self.dataToSend[5]:
             raise(ValueError("The upper output limit must be greater than the lower output limit."))
-
+        
         if 4 in self.dataToSend and not 5 in self.dataToSend:
             if self.dataToSend[4] >= self.fixedPointFloatToInt(self.upperOutputLimit):
                 raise(ValueError("The upper output limit must be greater than the lower output limit."))
             else:
                 intValue=self.fixedPointFloatToInt(self.upperOutputLimit)
-                self.dataToSend[5]=intValue
+                self.dataToSend[5]=intValue    
 
         if not 4 in self.dataToSend and 5 in self.dataToSend:
             if self.dataToSend[5] <= self.fixedPointFloatToInt(self.lowerOutputLimit):
                 raise(ValueError("The upper output limit must be greater than the lower output limit."))
             else:
                 intValue=self.fixedPointFloatToInt(self.lowerOutputLimit)
-                self.dataToSend[4]=intValue
+                self.dataToSend[4]=intValue    
 
         if 10 in self.dataToSend and 6 in self.dataToSend and self.dataToSend[6]==1:
             raise(ValueError("You can only write an output when the controller mode is 0."))
@@ -377,15 +355,14 @@ class PIDSender:
             raise(ValueError("You can only write an output when the controller mode is 0."))
 
         # Add sequence number to all requests
-        self.dataToSend[constants.MessageCodes.sequence_number] = self.sequence_number
-        print(self.dataToSend)
+        self.dataToSend[constants.MessageType.sequence_number] = self.sequence_number
 
         encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
         encodedLength=len(encodedData)
         if encodedLength > 255:
             raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
 
-        self.serialPort.write(encodedData)
+        self.__socket.send(encodedData)
 
         settings=open("settings.txt","r+")
         self.settingsList=settings.readlines()
@@ -423,7 +400,114 @@ class PIDSender:
         settings.close()
 
         self.dataToSend={}
+        
+        with open("settings.txt","w") as settings:
+            #print(self.settingsList)
+            settings.writelines(self.settingsList)
 
+        if encodedLength >= 100:
+            time.sleep(encodedLength/1200)
+        return True
+
+class PIDSenderSerial(PIDSender):
+    @property
+    def serial_port(self):
+        return self.__serial_port
+
+    def __init__(self, serial_port):
+        super().__init__()
+        self.__baudRate = 115200
+
+        import serial
+        self.__serial_port = serial.Serial(serial_port, self.__baudRate)
+
+        if not self.serial_port.isOpen():
+            self.serial_port.open()
+            print("Serial port opened.")
+        else:
+            print("Serial port was already open.")
+        time.sleep(1) # sleep two seconds to make sure the communication is established.
+
+    def readByte(self):
+        return self.serial_port.read(1)
+
+    #Method to send the temperature of the Tinkerforge Bricklet to the controller.
+    def sendTemperature(self):
+        temperature = self.getTemperature()
+        self.serial_port.write(self.encodeWithCobs(cbor2.dumps({
+            constants.MessageType.sequence_number: self.sequence_number,
+            constants.MessageType.set_input: temperature,
+          }),'withCBOR'))
+        return temperature
+
+    #Sends a specific temperature to controller that the user acn choose.
+    def sendManualTemperature(self,inputTemperature):
+        self.serial_port.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(inputTemperature)}),'withCBOR'))
+
+    """
+    This method is were the magic happens.
+    After the methods to change the parameters are called one has to call this function to send the dict with 
+    the new values.
+    First a test is performed if new upper and lower output limits are in the dict. If this is the case it is checked
+    if the lower output limit is smaller than the upper output limit, if this is the case an error is thrown.
+
+    After that a test is performed to see if an output was written without the controller beginning turned of.
+
+    Next the dict dataToSend is encoded and it is checked if the length is smaller than 255 bytes.
+    
+    After that the changed data is written in to the settings.txt file and the data is send to the controller.
+    
+    In the last step the values of the controller are updated, the dict is reset and the method returns true if no errors
+    have occured.   
+    """
+    def sendNewValues(self):
+        # Add sequence number to all requests
+        self.dataToSend[constants.MessageType.sequence_number] = self.sequence_number
+
+        encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
+        encodedLength=len(encodedData)
+        if encodedLength > 255:
+            raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
+
+        self.serial_port.write(encodedData)
+
+        settings=open("settings.txt","r+")
+        self.settingsList=settings.readlines()
+        for key in self.dataToSend:
+            if key==1:
+                self.kp=self.fixedPointIntToFloat(self.dataToSend[1])
+                self.settingsList[0]=str(self.kp)+"\n"
+            elif key==2:
+                self.ki=self.fixedPointIntToFloat(self.dataToSend[2])
+                self.settingsList[1]=str(self.ki)+"\n"
+            elif key==3:
+                self.kd=self.fixedPointIntToFloat(self.dataToSend[3])
+                self.settingsList[2]=str(self.kd)+"\n"
+            elif key==4:
+                self.lowerOutputLimit=self.fixedPointIntToFloat(self.dataToSend[4])
+                self.settingsList[3]=str(self.lowerOutputLimit)+"\n"
+            elif key==5:
+                self.upperOutputLimit=self.fixedPointIntToFloat(self.dataToSend[5])
+                self.settingsList[4]=str(self.upperOutputLimit)+"\n"
+            elif key==6:
+                self.mode=self.dataToSend[6]
+                self.settingsList[5]=str(self.mode)+"\n"
+            elif key==7:
+                self.sampleTime=self.dataToSend[7]
+                self.settingsList[6]=str(self.sampleTime)+"\n"
+            elif key==8:
+                self.direction=self.dataToSend[8]
+                self.settingsList[7]=str(self.direction)+"\n"
+            elif key==9:
+                self.setpoint=self.fixedPointIntToFloat(self.dataToSend[9])
+                self.settingsList[8]=str(self.setpoint)+"\n"
+            elif key==10:
+                self.output=self.fixedPointIntToFloat(self.dataToSend[10])
+                self.settingsList[9]=str(self.output)
+        settings.close()
+
+        self.dataToSend={}
+        
         with open("settings.txt","w") as settings:
             #print(self.settingsList)
             settings.writelines(self.settingsList)

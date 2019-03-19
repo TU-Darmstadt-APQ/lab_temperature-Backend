@@ -11,25 +11,25 @@ import constants
 #when there are changes in the input.
 
 
-controller = PIDSender('/dev/ttyACM0')
+controller = PIDSenderSerial('/dev/ttyACM3')
+#controller = PIDSenderEthernet("192.168.1.96")
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
 #controller.reset()
 controller.begin(sensorUID="DhJ",type="humidity")
+#controller.begin(sensorUID="Dm6",type="humidity")
 #controller.begin()
 controller.changeDirection(False)
-controller.changeKp(383.0)
-controller.changeKi(0.5)
-controller.changeKd(2.0)
-controller.changeSetpoint(24.00)
-controller.changeLowerOutputLimit(0.0)
-controller.changeUpperOutputLimit(4095.0)
-controller.changeSampleTime(2000)
-controller.changeOutput(2400.0)
-controller.sendNewValues()
-
+controller.changeKp(1011120) # 383.0 dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+controller.changeKi(1320)    # 0.5 dac_bit_values / (K s) * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+controller.changeKd(5280)    # 2.0 dac_bit_values * s / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
 controller.changeMode(True)
+controller.changeSetpoint(25420)    # ~ 24 °C   (temperature + 40) / 165 * 2**16 in adc_bit_values / K
+controller.changeLowerOutputLimit(0)
+controller.changeUpperOutputLimit(4095)
+controller.changeSampleTime(2000)
+#controller.changeOutput(4095.0)
 controller.sendNewValues()
 
 #print("\n")
@@ -42,7 +42,7 @@ except FileNotFoundError:
     fileToWrite=open("temperature_data"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("# The settings of the controller are:\n"+"kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi()), kd=controller.getKd(), setpoint=controller.getSetpoint(), samping_interval=controller.getSampleTime())
+fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
 
 if __name__ == "__main__":
 
@@ -52,36 +52,33 @@ if __name__ == "__main__":
 
         #Sends and reads the data in an infinite loop.
         while True:
-                if time.time()-startTime>controller.sampleTime/2000:
-                        temperature = controller.sendTemperature()
-                        startTime=time.time()
+            if time.time() - startTime > controller.sampleTime / 2000:
+                temperature = controller.sendTemperature()
+                startTime=time.time()
 
-                #Read the answer of the Arduino with Cbor and Cobs.
-                while controller.serialPort.in_waiting:
-                        
-                        recievedByte=controller.serialPort.read()
-                        
-                        if recievedByte==b'\x00':
-                                #print(data)
-                                #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
-                                #If this is not the case than the communication goes to shit.
-                                try:
-                                    result = cbor2.loads(cobs.decode(data))
-                                    try:
-                                        if result.get(constants.MessageCodes.set_input, constants.MessageCodes.error_invalid_command) == constants.MessageCodes.messageAck:
-                                            line = "{timestamp},{temperature:.2f},{output}".format(timestamp=datetime.utcnow(), temperature=temperature, 
-output=result[constants.MessageCodes.callback_update_value])
-                                            fileToWrite.write(line+"\n")
-                                            print(line)
-                                    except KeyError:
-                                        print(data)
-                                except cobs.DecodeError:
-                                    print(data)
+            #Read the answer of the Arduino with Cbor and Cobs.
+            recievedByte=controller.readByte()
 
-                                #Reinitialize the bytearray for new data.
-                                data=b''
-                        else:
-                                data = data + recievedByte
+            if recievedByte==b'\x00':
+                #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
+                #If this is not the case than the communication goes to shit.
+                try:
+                    result = cbor2.loads(cobs.decode(data))
+                    try:
+                        if result.get(constants.MessageType.set_input, constants.MessageCode.error_invalid_command) == constants.MessageCode.messageAck:
+                            line = "{timestamp},{temp2:f},{temperature:d},{output}".format(timestamp=datetime.utcnow(), temp2=temperature/2**16*165-40, temperature=temperature, output=result[constants.MessageType.callback_update_value])
+                            fileToWrite.write(line+"\n")
+                            print(line)
+                    except KeyError as e:
+                        print('error', data)
+                except (cobs.DecodeError, cbor2.decoder.CBORDecodeError) as e:
+                    print(e, data)
+
+                #Reinitialize the bytearray for new data.
+                data=b''
+            else:
+                data = data + recievedByte
+                #print(data)
                 #Sleep the script to reduce the cpu load.
                 #0.001 is the minimal sample time of the controller.
                 time.sleep(0.1)
