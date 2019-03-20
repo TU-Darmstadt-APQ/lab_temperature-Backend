@@ -15,10 +15,28 @@ controller = None
 sensor_ip = os.getenv("SENSOR_IP", "localhost")
 sensor_port = os.getenv("SENSOR_PORT", 4223)
 sensor_uid = os.getenv("SENSOR_UID")
-if sensor_uid is None:
-  raise RuntimeError("\"SENSOR_UID\" environment variable found. Cannot create controller.")
-
+assert sensor_uid is not None, "\"SENSOR_UID\" environment variable not found. Cannot create controller."
 sensor_type = os.getenv("SENSOR_TYPE", "temperature")
+
+pid_ki = os.getenv("PID_KI")
+assert pid_ki is not None, "\"PID_KI\" environment variable not found. Cannot create controller."
+pid_kp = os.getenv("PID_KP")
+assert pid_kp is not None, "\"PID_KP\" environment variable not found. Cannot create controller."
+pid_kd = os.getenv("PID_KD")
+assert pid_kd is not None, "\"PID_KD\" environment variable not found. Cannot create controller."
+pid_setpoint = os.getenv("PID_SETPOINT")
+assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable not found. Cannot create controller."
+
+# K is Kelvin
+# conversion:
+# kp: dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+# ki: dac_bit_values / (K s) * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+# kd: dac_bit_values * s / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+pid_kp = int(pid_kp / 165 * 2**16)
+pid_ki = int(pid_ki / 165 * 2**16)
+pid_kd = int(pid_kd / 165 * 2**16)
+pid_setpoint = int(pid_setpoint + 40 / 165 * 2**16)
+
 controller_ip = os.getenv("CONTROLLER_IP")
 controller_port = os.getenv("CONTROLLER_PORT", 4223)
 if controller_ip is not None:
@@ -26,13 +44,10 @@ if controller_ip is not None:
 
 controller_serial = os.getenv("CONTROLLER_SERIAL")
 if controller_serial is not None:
-  if controller is not None:
-    controller = PIDSenderSerial(serial_port=controller_serial, sensor_ip=sensor_ip, sensor_port=sensor_port)
-  else:
-    raise RuntimeError("Error. More than one controller type specified. Aborting.'")
+  assert controller is None, "Error. More than one controller type specified. Aborting." 
+  controller = PIDSenderSerial(serial_port=controller_serial, sensor_ip=sensor_ip, sensor_port=sensor_port)
 
-if controller is None:
-  raise RuntimeError("Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable found. Cannot create controller.")
+assert controller is None, "Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable not found. Cannot create controller."
 
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
@@ -42,9 +57,9 @@ controller.begin(sensorUID=sensor_uid, sensor_type=sensor_type)
 #controller.begin()
 controller.changeDirection(False)
 #controller.changeDirection(True)
-controller.changeKp(1011120) # 383.0 dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
-controller.changeKi(1320)    # 0.5 dac_bit_values / (K s) * 165 / 2**16 adc_bit_values / K in Q11.20 notation
-controller.changeKd(5280)    # 2.0 dac_bit_values * s / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+controller.changeKp(pid_kp)
+controller.changeKi(pid_ki)
+controller.changeKd(pid_kd)
 controller.changeMode(True)
 #controller.changeMode(False)
 controller.changeSetpoint(25022)    # ~ 23 °C   (temperature + 40) / 165 * 2**16 in adc_bit_values / K
@@ -65,7 +80,7 @@ except FileNotFoundError:
     fileToWrite=open("temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint} ,sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
+fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
 if __name__ == "__main__":
 
         data=b''
