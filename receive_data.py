@@ -14,6 +14,11 @@ controller = None
 
 sensor_ip = os.getenv("SENSOR_IP", "localhost")
 sensor_port = os.getenv("SENSOR_PORT", 4223)
+sensor_uid = os.getenv("SENSOR_UID")
+if sensor_uid is None:
+  raise RuntimeError("\"SENSOR_UID\" environment variable found. Cannot create controller.")
+
+sensor_type = os.getenv("SENSOR_TYPE", "temperature")
 controller_ip = os.getenv("CONTROLLER_IP")
 controller_port = os.getenv("CONTROLLER_PORT", 4223)
 if controller_ip is not None:
@@ -27,13 +32,13 @@ if controller_serial is not None:
     raise RuntimeError("Error. More than one controller type specified. Aborting.'")
 
 if controller is None:
-  raise RuntimeError("Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environmental variable found. Cannot create controller.")
+  raise RuntimeError("Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable found. Cannot create controller.")
 
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
 
 #controller.reset()
-controller.begin(sensorUID="DhJ",type="humidity")
+controller.begin(sensorUID=sensor_uid, sensor_type=sensor_type)
 #controller.begin()
 controller.changeDirection(False)
 #controller.changeDirection(True)

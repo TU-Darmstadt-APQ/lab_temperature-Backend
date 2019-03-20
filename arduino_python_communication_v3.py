@@ -56,8 +56,7 @@ class PIDSender:
         self.uid=0
         self.ipcon=0
         self.bricklet=0
-        self.sensorType=0
-        self.type="temperature"
+        self.sensor_type="temperature"
 
         #The data that will be send is saved in this dict.
         self.dataToSend = {}
@@ -113,13 +112,13 @@ class PIDSender:
         settings.close()
 
         #Start the connection with the Tinkerforge sensor
-        if "sensorUID" in keywordParameters and "type" in keywordParameters:
+        if "sensorUID" in keywordParameters and "sensor_type" in keywordParameters:
             self.uid=keywordParameters["sensorUID"]
-            self.type=keywordParameters["type"]
+            self.sensor_type=keywordParameters["sensor_type"]
             self.ipcon = IPConnection()
-            if self.type=="temperature":
+            if self.sensor_type=="temperature":
                 self.bricklet = BrickletTemperature(self.uid,self.ipcon)
-            elif self.type=="humidity":
+            elif self.sensor_type=="humidity":
                 self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
             else:
                 print("No specific Bricklet passed, default to Temperature Bricklet.")
