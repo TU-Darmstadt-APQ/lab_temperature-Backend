@@ -25,17 +25,17 @@ assert pid_kp is not None, "\"PID_KP\" environment variable not found. Cannot cr
 pid_kd = os.getenv("PID_KD")
 assert pid_kd is not None, "\"PID_KD\" environment variable not found. Cannot create controller."
 pid_setpoint = os.getenv("PID_SETPOINT")
-assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable not found. Cannot create controller."
+assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable  found. Cannot create controller."
 
 # K is Kelvin
 # conversion:
 # kp: dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
 # ki: dac_bit_values / (K s) * 165 / 2**16 adc_bit_values / K in Q11.20 notation
 # kd: dac_bit_values * s / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
-pid_kp = int(pid_kp / 165 * 2**16)
-pid_ki = int(pid_ki / 165 * 2**16)
-pid_kd = int(pid_kd / 165 * 2**16)
-pid_setpoint = int(pid_setpoint + 40 / 165 * 2**16)
+pid_kp = int(float(pid_kp) * 165 / 2**16 * 2**20)
+pid_ki = int(float(pid_ki) * 165 / 2**16 * 2**20)
+pid_kd = int(float(pid_kd) * 165 / 2**16 * 2**20)
+pid_setpoint = int(float(pid_setpoint) + 40 / 165 * 2**16)
 
 controller_ip = os.getenv("CONTROLLER_IP")
 controller_port = os.getenv("CONTROLLER_PORT", 4223)
@@ -47,7 +47,7 @@ if controller_serial is not None:
   assert controller is None, "Error. More than one controller type specified. Aborting." 
   controller = PIDSenderSerial(serial_port=controller_serial, sensor_ip=sensor_ip, sensor_port=sensor_port)
 
-assert controller is None, "Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable not found. Cannot create controller."
+assert controller is not None, "Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable found. Cannot create controller."
 
 #Send the main settings to the controller.
 #controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
