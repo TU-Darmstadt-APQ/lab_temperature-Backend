@@ -35,7 +35,7 @@ assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable  found. 
 pid_kp = int(float(pid_kp) * 165 / 2**16 * 2**20)
 pid_ki = int(float(pid_ki) * 165 / 2**16 * 2**20)
 pid_kd = int(float(pid_kd) * 165 / 2**16 * 2**20)
-pid_setpoint = int(float(pid_setpoint) + 40 / 165 * 2**16)
+pid_setpoint = int((float(pid_setpoint) + 40) / 165 * 2**16)    # (temperature + 40) / 165 * 2**16 in adc_bit_values / K
 
 controller_ip = os.getenv("CONTROLLER_IP")
 controller_port = os.getenv("CONTROLLER_PORT", 4223)
@@ -62,7 +62,7 @@ controller.changeKi(pid_ki)
 controller.changeKd(pid_kd)
 controller.changeMode(True)
 #controller.changeMode(False)
-controller.changeSetpoint(25022)    # ~ 23 °C   (temperature + 40) / 165 * 2**16 in adc_bit_values / K
+controller.changeSetpoint(pid_setpoint)
 controller.changeLowerOutputLimit(0)
 controller.changeUpperOutputLimit(4095)
 controller.changeSampleTime(2000)
