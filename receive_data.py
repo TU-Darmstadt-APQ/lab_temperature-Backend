@@ -28,7 +28,10 @@ assert pid_kd is not None, "\"PID_KD\" environment variable not found. Cannot cr
 pid_setpoint = os.getenv("PID_SETPOINT")
 assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable  found. Cannot create controller."
 
-pid_timeout = os.getenv("PID_TIMEOUT")
+try:
+  pid_timeout = int(os.getenv("PID_TIMEOUT"))
+except ValueError:
+  pid_timeout = None
 assert pid_setpoint is not None, "\"PID_TIMEOUT\" environment variable  found. Cannot create controller."
 
 dac_enable_gain = os.getenv("OUTPUT_ENABLE_GAIN", True)
