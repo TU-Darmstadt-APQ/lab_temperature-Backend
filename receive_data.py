@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
         #Sends and reads the data in an infinite loop.
         while True:
-            if time.time() - startTime > 1000:
+            if time.time() - startTime >= 1:
                 temperature = controller.sendTemperature()
                 startTime=time.time()
 
