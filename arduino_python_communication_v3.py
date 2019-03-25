@@ -45,7 +45,6 @@ class PIDSender:
 
     def __init__(self, sensor_ip='localhost', sensor_port=4223):
         #Stuff that is needed to build a connection with the temperature bricklet.
-#        self.host="192.168.1.94"
         self.host=sensor_ip
         self.port=sensor_port
         self.uid=0
@@ -90,23 +89,6 @@ class PIDSender:
                 self.bricklet= BrickletTemperature(self.uid,self.ipcon)
             self.ipcon.connect(self.host,self.port)
 
-    #All the setter methods.
-
-    """
-    The following methods are all needed to change the parameters of the controller.
-    They are mostly the same the only difference is if they take floating point numbers or integers as input.
-    These methods work as follows.
-    -floating point numbers:
-        1.The type of the input is checked if it is not of type float an error is thrown.
-        2.The given float is converted to a fixedpoint unit.
-        3.It is checked if the resulting integer is too big (larger than 32 bit) or smaller than zero, if thi is the
-          case an error is thrown.
-        4.It is checked if the entered value is the same as the current value, if this is not the case the integer
-          is added to the dataToSend dictonary with the according key.
-    -integer values:
-        Works the same as the floating point values without the conversion at the beginning.
-    """
-
     def set_gain(self, value):
         self.dataToSend[constants.MessageType.set_gain] = value
 
@@ -140,20 +122,8 @@ class PIDSender:
     def set_output(self, value):
         self.dataToSend[constants.MessageType.set_output] = value
 
-    #Method to encode given data with cobs.
-    #Takes two parameters as input:
-    #    -data: The data that should be encoded.
-    #    -x: If x equals "withCBOR" the method does not convert the input data to byte array before encding it.
-    def encodeWithCobs(self,data,x):
-    #distinguish between CBOR and withour CBOR
-        if x=='withCBOR':
-            return bytearray(cobs.encode(data)+b'\x00')
-        else:
-            return bytearray(cobs.encode(bytearray(data))+b'\x00')
-
-    #Takes a number as input and returns the according value in fixed point arithmetic.
-    def fixedPointFloatToInt(self,floatToConvert):
-        return(int(round(floatToConvert*2**(self.fixedPoint),0)))
+    def encodeWithCobs(self, data):
+      return bytearray(cobs.encode(data)+b'\x00')
 
     #Takes a number that was converted with fixed point arithmetic as input and returns the original number.
     def fixedPointIntToFloat(self,intToConvert):
@@ -219,10 +189,13 @@ class PIDSenderEthernet(PIDSender):
     #Method to send the temperature of the Tinkerforge Bricklet to the controller.
     def sendTemperature(self):
         temperature  = self.getTemperature()
-        self.__socket.send(self.encodeWithCobs(cbor2.dumps({
+        data = self.encodeWithCobs(
+          cbor2.dumps({
             constants.MessageType.sequence_number: self.sequence_number,
             constants.MessageType.set_input: temperature,
-          }),'withCBOR'))
+          })
+        )
+        self.__socket.send(data)
         return temperature
 
     """
@@ -240,32 +213,10 @@ class PIDSenderEthernet(PIDSender):
     have occured.   
     """
     def sendNewValues(self):
-        if 4 in self.dataToSend and 5 in self.dataToSend and self.dataToSend[4] >= self.dataToSend[5]:
-            raise(ValueError("The upper output limit must be greater than the lower output limit."))
-        
-        if 4 in self.dataToSend and not 5 in self.dataToSend:
-            if self.dataToSend[4] >= self.fixedPointFloatToInt(self.upperOutputLimit):
-                raise(ValueError("The upper output limit must be greater than the lower output limit."))
-            else:
-                intValue=self.fixedPointFloatToInt(self.upperOutputLimit)
-                self.dataToSend[5]=intValue    
-
-        if not 4 in self.dataToSend and 5 in self.dataToSend:
-            if self.dataToSend[5] <= self.fixedPointFloatToInt(self.lowerOutputLimit):
-                raise(ValueError("The upper output limit must be greater than the lower output limit."))
-            else:
-                intValue=self.fixedPointFloatToInt(self.lowerOutputLimit)
-                self.dataToSend[4]=intValue    
-
-        if 10 in self.dataToSend and 6 in self.dataToSend and self.dataToSend[6]==1:
-            raise(ValueError("You can only write an output when the controller mode is 0."))
-        if 10 in self.dataToSend and not 6 in self.dataToSend and self.mode==1:
-            raise(ValueError("You can only write an output when the controller mode is 0."))
-
         # Add sequence number to all requests
         self.dataToSend[constants.MessageType.sequence_number] = self.sequence_number
 
-        encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
+        encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend))
         encodedLength=len(encodedData)
         if encodedLength > 255:
             raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
@@ -325,15 +276,14 @@ class PIDSenderSerial(PIDSender):
     #Method to send the temperature of the Tinkerforge Bricklet to the controller.
     def sendTemperature(self):
         temperature = self.getTemperature()
-        self.serial_port.write(self.encodeWithCobs(cbor2.dumps({
+        data = self.encodeWithCobs(
+          cbor2.dumps({
             constants.MessageType.sequence_number: self.sequence_number,
             constants.MessageType.set_input: temperature,
-          }),'withCBOR'))
+          })
+        )
+        self.serial_port.write(data)
         return temperature
-
-    #Sends a specific temperature to controller that the user acn choose.
-    def sendManualTemperature(self,inputTemperature):
-        self.serial_port.write(self.encodeWithCobs(cbor2.dumps({0:self.fixedPointFloatToInt(inputTemperature)}),'withCBOR'))
 
     """
     This method is were the magic happens.
@@ -353,7 +303,7 @@ class PIDSenderSerial(PIDSender):
         # Add sequence number to all requests
         self.dataToSend[constants.MessageType.sequence_number] = self.sequence_number
 
-        encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend),'withCBOR')
+        encodedData=self.encodeWithCobs(cbor2.dumps(self.dataToSend))
         encodedLength=len(encodedData)
         if encodedLength > 255:
             raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")

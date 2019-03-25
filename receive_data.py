@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
 
-from arduino_python_communication_v3 import *
 from datetime import datetime
 import os
 
+from arduino_python_communication_v3 import *
 import constants
-
-#Set the parameters for the PID controller.
-#Be carefull when setting a high Kd value and a small sampletime, this will result in the controller outputing either the max. output or the min. output
-#when there are changes in the input.
-
-
-controller = None
 
 sensor_ip = os.getenv("SENSOR_IP", "localhost")
 sensor_port = os.getenv("SENSOR_PORT", 4223)
@@ -46,6 +39,7 @@ pid_ki = int(float(pid_ki) * 165 / 2**16 * 2**20)
 pid_kd = int(float(pid_kd) * 165 / 2**16 * 2**20)
 pid_setpoint = int((float(pid_setpoint) + 40) / 165 * 2**16)    # (temperature + 40) / 165 * 2**16 in adc_bit_values / K
 
+controller = None
 controller_ip = os.getenv("CONTROLLER_IP")
 controller_port = os.getenv("CONTROLLER_PORT", 4223)
 if controller_ip is not None:
@@ -92,20 +86,17 @@ if __name__ == "__main__":
         while True:
             if time.time() - startTime >= 1:
                 temperature = controller.sendTemperature()
-                startTime=time.time()
+                startTime = time.time()
 
             #Read the answer of the Arduino with Cbor and Cobs.
             recievedByte=controller.socket.recv(1)
 
             if recievedByte==b'\x00':
                 #print(data)
-                #Rememerber that the code on the Arduino must not contain any Serial.print()-functions.
-                #If this is not the case than the communication goes to shit.
                 try:
                     result = cbor2.loads(cobs.decode(data))
                     try:
                         if result.get(constants.MessageType.set_input, constants.MessageCode.error_invalid_command) == constants.MessageCode.messageAck:
-#                            temperature = (temperature / 2**16 * 165 - 40)
                             line = "{timestamp},{temperature:.2f},{raw},{output}".format(timestamp=datetime.utcnow(), temperature=temperature/2**16*165-40, raw=temperature, output=result[constants.MessageType.callback_update_value])
                             fileToWrite.write(line+"\n")
                             print(line)
