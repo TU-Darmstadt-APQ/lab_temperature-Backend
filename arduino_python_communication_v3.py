@@ -110,71 +110,35 @@ class PIDSender:
     def set_gain(self, value):
         self.dataToSend[constants.MessageType.set_gain] = value
 
-    def changeKp(self, value):
-        if not type(value) is int:
-            raise(TypeError("Kp must be of type int."))
-        if value < 0 or value > (2**32)-1:
-            raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[1]=value
+    def set_kp(self, value):
+        self.dataToSend[constants.MessageType.set_kp] = value
 
-    def changeKi(self, value):
-        if not type(value) is int:
-            raise(TypeError("Ki must be of type int."))
-        if value < 0 or value > (2**32)-1:
-            raise(ValueError("Ki must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[2]=value
+    def set_ki(self, value):
+        self.dataToSend[constants.MessageType.set_ki] = value
 
-    def changeKd(self, value):
-        if not type(value) is int:
-            raise(TypeError("Kp must be of type int."))
-        if value < 0 or value > (2**32) -1:
-            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
-        self.dataToSend[3]=value
+    def set_kd(self, value):
+        self.dataToSend[constants.MessageType.set_kd] = value
 
+    def set_pid_enable(self, value):
+        self.dataToSend[constants.MessageType.set_enable] = value
 
-    def changeLowerOutputLimit(self, value):
-        if not type(value) is int:
-            raise(TypeError("Lower output limit must be of type int"))
-        if value < 0 or value > (2**32) -1:
-            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
-        self.dataToSend[4] = value
+    def set_output_limit_low(self, value):
+        self.dataToSend[constants.MessageType.set_lower_output_limit] = value
 
-    def changeUpperOutputLimit(self, value):
-        if not type(value) is int:
-            raise(TypeError("Upper output limit must be of type int"))
-        if value < 0 or value > (2**32) -1:
-            raise ValueError("The output limit must be an unsigned int with a maximum size of 32 Bit.")
-        self.dataToSend[5] = value
+    def set_output_limit_high(self, value):
+        self.dataToSend[constants.MessageType.set_upper_output_limit] = value
 
-    def changeMode(self, newMode):
-        self.dataToSend[6]=newMode
-
-    def setTimeout(self, value):
-        if not type(value) is int:
-            raise TypeError("The timeout must be of type int.")
-        if value < 0 or value > (2**32) -1:
-            raise ValueError("The timeout must be an unsigned int with a maximum size of 32 Bit.")
+    def set_timeout(self, value):
         self.dataToSend[constants.MessageType.set_timeout] = value
 
-    def changeDirection(self, newDirection):
-        if not (newDirection==1 or newDirection==0):
-            raise(ValueError("The direction must be either 0 or 1."))
-        self.dataToSend[8]=newDirection
+    def set_pid_direction(self, value):
+        self.dataToSend[constants.MessageType.set_direction] = value
 
-    def changeSetpoint(self, value):
-        if not type(value) is int:
-            raise(TypeError("Setpoint must be of type int."))
-        if value < 0 or value > (2**32)-1:
-            raise(ValueError("The setpoint must be an unsigned int with a maximum size of 32 Bit."))
-        self.dataToSend[9]=value    
+    def set_setpoint(self, value):
+        self.dataToSend[constants.MessageType.set_setpoint] = value
 
-    def changeOutput(self, newOutput):
-        if not type(newOutput) is float:
-            raise(TypeError("Kp must be of type float."))
-        intValue=self.fixedPointFloatToInt(newOutput)
-        if newOutput < 0 or intValue > (2**32)-1:
-            raise(ValueError("Kp must be greater than 0 and smaller than 32 bit."))
-        self.dataToSend[10]=intValue
+    def set_output(self, value):
+        self.dataToSend[constants.MessageType.set_output] = value
 
     #Method to encode given data with cobs.
     #Takes two parameters as input:
