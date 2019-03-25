@@ -33,11 +33,6 @@ from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
 from tinkerforge.bricklet_humidity_v2 import BrickletHumidityV2
 from tinkerforge.bricklet_humidity import BrickletHumidity
-#To send temperature without a Tinkerforge sensor
-from random import random
-#To check if a settings.txt file exists
-import os.path
-import os
 
 import constants
 
@@ -74,9 +69,6 @@ class PIDSender:
         self.output = -1.0
         self.__sequence_number = 0
 
-        #List of the settings that are saved in the settings.txt file.
-        self.settingsList=[str(self.kp)+"\n",str(self.ki)+"\n",str(self.ki)+"\n",str(self.lowerOutputLimit)+"\n",str(self.upperOutputLimit)+"\n",str(self.mode)+"\n",str(self.sampleTime)+"\n",str(self.direction)+"\n",str(self.setpoint)+"\n",str(self.output)]
-
         #Floating point numbers send as integers using fixed point arithmetic.
         self.fixedPoint=16
 
@@ -84,33 +76,6 @@ class PIDSender:
     #It takes an optional parameter which is the UID of the Tinkerforge temperature sensor (e.g. "zih").
     #Type is the type of the sensor
     def begin(self,*args,**keywordParameters):
-        #The settings are saved in a settings.txt file.
-        #If the settings file does not exist, we have to create one.
-        #print("Begin function was called. With the keywords: "+str(keywordParameters["sensorUID"])+","+str(keywordParameters["type"]))
-        if not os.path.exists("settings.txt"):
-            print("Have to create a file.")
-            #Open and closing the file with the parameter "w" will create a new file.
-            settings=open("settings.txt","w")
-            #Write the initiale values in the file.
-            settings.writelines(self.settingsList)
-            settings.close()
-
-        #If no file has to be created. We read the already existing file to get the same
-        #settings as in the last session where the controller was used.
-        settings=open("settings.txt","r")
-        self.settingsList=settings.readlines()
-        self.kp=float(self.settingsList[0][:-1])
-        self.ki=float(self.settingsList[1][:-1])
-        self.kd=float(self.settingsList[2][:-1])
-        self.lowerOutputLimit=float(self.settingsList[3][:-1])
-        self.upperOutputLimit=float(self.settingsList[4][:-1])
-        self.mode=self.settingsList[5][:-1]
-        self.sampleTime=int(self.settingsList[6][:-1])
-        self.direction=self.settingsList[7][:-1]
-        self.setpoint=float(self.settingsList[8][:-1])
-        self.output=float(self.settingsList[9][:-1])
-        settings.close()
-
         #Start the connection with the Tinkerforge sensor
         if "sensorUID" in keywordParameters and "sensor_type" in keywordParameters:
             self.uid=keywordParameters["sensorUID"]
@@ -121,7 +86,7 @@ class PIDSender:
             elif self.sensor_type=="humidity":
                 self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
             else:
-                print("No specific Bricklet passed, default to Temperature Bricklet.")
+                print("No specific Bricklet passed, defaulting to Temperature Bricklet.")
                 self.bricklet= BrickletTemperature(self.uid,self.ipcon)
             self.ipcon.connect(self.host,self.port)
 
@@ -141,13 +106,6 @@ class PIDSender:
     -integer values:
         Works the same as the floating point values without the conversion at the beginning.
     """
-
-    def reset(self):
-        if os.path.exists("settings.txt"):
-            os.remove("settings.txt")
-            print("The existing settings file was removed.")
-        else:
-            print("Couldn't reset the controller. No settings file has been created.")
 
     def set_gain(self, value):
         self.dataToSend[constants.MessageType.set_gain] = value
@@ -191,11 +149,11 @@ class PIDSender:
     def changeMode(self, newMode):
         self.dataToSend[6]=newMode
 
-    def changeSampleTime(self, value):
+    def setTimeout(self, value):
         if not type(value) is int:
-            raise TypeError("The sample time must be of type int.")
+            raise TypeError("The timeout must be of type int.")
         if value < 0 or value > (2**32) -1:
-            raise ValueError("the sample time must be an unsigned int with a maximum size of 32 Bit.")
+            raise ValueError("The timeout must be an unsigned int with a maximum size of 32 Bit.")
         self.dataToSend[constants.MessageType.set_timeout] = value
 
     def changeDirection(self, newDirection):
@@ -258,9 +216,6 @@ class PIDSender:
     def getMode(self):
         return self.mode
 
-    def getSampleTime(self):
-        return self.sampleTime
-
     def getDirection(self):
         return self.direction
 
@@ -281,18 +236,6 @@ class PIDSender:
 
     def getBuffer(self):
         return self.dataToSend
-
-    #This method is here to print all the current settings of the controller to the console.
-    def printEverything(self):
-        print("The value of Kp is: %.2f" % (self.kp))
-        print("The value of Ki is: %.2f" % (self.ki))
-        print("The value of Kd is: %.2f" % (self.kd))
-        print("The lower output limit is: %.2f" % (self.lowerOutputLimit))
-        print("The upper output limit is: %.2f" % (self.upperOutputLimit))
-        print("The mode is: ",self.mode)
-        print("The sample time is: ",self.sampleTime)
-        print("The direction is: ",self.direction)
-        print("The setpoint is: %.2f" % (self.setpoint))
 
 class PIDSenderEthernet(PIDSender):
     @property
@@ -328,8 +271,6 @@ class PIDSenderEthernet(PIDSender):
     After that a test is performed to see if an output was written without the controller beginning turned of.
 
     Next the dict dataToSend is encoded and it is checked if the length is smaller than 255 bytes.
-    
-    After that the changed data is written in to the settings.txt file and the data is send to the controller.
     
     In the last step the values of the controller are updated, the dict is reset and the method returns true if no errors
     have occured.   
@@ -367,47 +308,30 @@ class PIDSenderEthernet(PIDSender):
 
         self.__socket.send(encodedData)
 
-        settings=open("settings.txt","r+")
-        self.settingsList=settings.readlines()
         for key in self.dataToSend:
             if key==1:
                 self.kp=self.fixedPointIntToFloat(self.dataToSend[1])
-                self.settingsList[0]=str(self.kp)+"\n"
             elif key==2:
                 self.ki=self.fixedPointIntToFloat(self.dataToSend[2])
-                self.settingsList[1]=str(self.ki)+"\n"
             elif key==3:
                 self.kd=self.fixedPointIntToFloat(self.dataToSend[3])
-                self.settingsList[2]=str(self.kd)+"\n"
             elif key==4:
                 self.lowerOutputLimit=self.fixedPointIntToFloat(self.dataToSend[4])
-                self.settingsList[3]=str(self.lowerOutputLimit)+"\n"
             elif key==5:
                 self.upperOutputLimit=self.fixedPointIntToFloat(self.dataToSend[5])
-                self.settingsList[4]=str(self.upperOutputLimit)+"\n"
             elif key==6:
                 self.mode=self.dataToSend[6]
-                self.settingsList[5]=str(self.mode)+"\n"
             elif key==7:
                 self.sampleTime=self.dataToSend[7]
-                self.settingsList[6]=str(self.sampleTime)+"\n"
             elif key==8:
                 self.direction=self.dataToSend[8]
-                self.settingsList[7]=str(self.direction)+"\n"
             elif key==9:
                 self.setpoint=self.fixedPointIntToFloat(self.dataToSend[9])
-                self.settingsList[8]=str(self.setpoint)+"\n"
             elif key==10:
                 self.output=self.fixedPointIntToFloat(self.dataToSend[10])
-                self.settingsList[9]=str(self.output)
-        settings.close()
 
         self.dataToSend={}
         
-        with open("settings.txt","w") as settings:
-            #print(self.settingsList)
-            settings.writelines(self.settingsList)
-
         if encodedLength >= 100:
             time.sleep(encodedLength/1200)
         return True
@@ -458,8 +382,6 @@ class PIDSenderSerial(PIDSender):
 
     Next the dict dataToSend is encoded and it is checked if the length is smaller than 255 bytes.
     
-    After that the changed data is written in to the settings.txt file and the data is send to the controller.
-    
     In the last step the values of the controller are updated, the dict is reset and the method returns true if no errors
     have occured.   
     """
@@ -474,46 +396,29 @@ class PIDSenderSerial(PIDSender):
 
         self.serial_port.write(encodedData)
 
-        settings=open("settings.txt","r+")
-        self.settingsList=settings.readlines()
         for key in self.dataToSend:
             if key==1:
                 self.kp=self.fixedPointIntToFloat(self.dataToSend[1])
-                self.settingsList[0]=str(self.kp)+"\n"
             elif key==2:
                 self.ki=self.fixedPointIntToFloat(self.dataToSend[2])
-                self.settingsList[1]=str(self.ki)+"\n"
             elif key==3:
                 self.kd=self.fixedPointIntToFloat(self.dataToSend[3])
-                self.settingsList[2]=str(self.kd)+"\n"
             elif key==4:
                 self.lowerOutputLimit=self.fixedPointIntToFloat(self.dataToSend[4])
-                self.settingsList[3]=str(self.lowerOutputLimit)+"\n"
             elif key==5:
                 self.upperOutputLimit=self.fixedPointIntToFloat(self.dataToSend[5])
-                self.settingsList[4]=str(self.upperOutputLimit)+"\n"
             elif key==6:
                 self.mode=self.dataToSend[6]
-                self.settingsList[5]=str(self.mode)+"\n"
             elif key==7:
                 self.sampleTime=self.dataToSend[7]
-                self.settingsList[6]=str(self.sampleTime)+"\n"
             elif key==8:
                 self.direction=self.dataToSend[8]
-                self.settingsList[7]=str(self.direction)+"\n"
             elif key==9:
                 self.setpoint=self.fixedPointIntToFloat(self.dataToSend[9])
-                self.settingsList[8]=str(self.setpoint)+"\n"
             elif key==10:
                 self.output=self.fixedPointIntToFloat(self.dataToSend[10])
-                self.settingsList[9]=str(self.output)
-        settings.close()
 
         self.dataToSend={}
-
-        with open("settings.txt","w") as settings:
-            #print(self.settingsList)
-            settings.writelines(self.settingsList)
 
         if encodedLength >= 100:
             time.sleep(encodedLength/1200)

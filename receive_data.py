@@ -27,6 +27,11 @@ assert pid_kd is not None, "\"PID_KD\" environment variable not found. Cannot cr
 pid_setpoint = os.getenv("PID_SETPOINT")
 assert pid_setpoint is not None, "\"PID_SETPOINT\" environment variable  found. Cannot create controller."
 
+pid_timeout = os.getenv("PID_TIMEOUT")
+assert pid_setpoint is not None, "\"PID_TIMEOUT\" environment variable  found. Cannot create controller."
+
+dac_enable_gain = os.getenv("OUTPUT_ENABLE_GAIN", True)
+
 # K is Kelvin
 # conversion:
 # kp: dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
@@ -50,9 +55,6 @@ if controller_serial is not None:
 assert controller is not None, "Neither \"CONTROLLER_IP\" nor \"CONTROLLER_SERIAL\" environment variable found. Cannot create controller."
 
 #Send the main settings to the controller.
-#controller.sendIntData({0:22.0,1:controller.getKp(),2:controller.getKi(),3:controller.getKd(),6:controller.getControllerActivity(),7:controller.getSampleTime(),8:controller.getDirection(),9:controller.getSetpoint()})
-
-#controller.reset()
 controller.begin(sensorUID=sensor_uid, sensor_type=sensor_type)
 #controller.begin()
 controller.changeDirection(False)
@@ -65,22 +67,17 @@ controller.changeMode(True)
 controller.changeSetpoint(pid_setpoint)
 controller.changeLowerOutputLimit(0)
 controller.changeUpperOutputLimit(4095)
-controller.changeSampleTime(2000)
+controller.setTimeout(pid_timeout)
 #controller.changeOutput(4095)
-controller.set_gain(True)
+controller.set_gain(dac_enable_gain)
 controller.sendNewValues()
-
-#print("\n")
-#controller.printEverything()
-#print("\n")
-
 try:
     fileToWrite=open("data/temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 except FileNotFoundError:
     fileToWrite=open("temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=controller.getSampleTime()))
+fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=1000))
 if __name__ == "__main__":
 
         data=b''
@@ -89,7 +86,7 @@ if __name__ == "__main__":
 
         #Sends and reads the data in an infinite loop.
         while True:
-            if time.time()-startTime>controller.sampleTime/2000:
+            if time.time() - startTime > 1000:
                 temperature = controller.sendTemperature()
                 startTime=time.time()
 
