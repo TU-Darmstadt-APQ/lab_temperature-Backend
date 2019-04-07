@@ -70,7 +70,7 @@ controller.set_timeout(pid_timeout)
 controller.set_gain(dac_enable_gain)
 controller.sendNewValues()
 try:
-    fileToWrite=open("data/temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
+    fileToWrite=open("logs/temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 except FileNotFoundError:
     fileToWrite=open("temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
