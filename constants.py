@@ -35,9 +35,11 @@ class MessageType(IntEnum):
     set_output = 10
     get_version = 11
     get_serial = 12
+    set_serial = 16
     get_device_type = 13
     set_gain = 14
-    callback_update_value = 15
+    get_board_temperature = 15
+    callback_update_value = 22
     sequence_number = 23
     error_invalid_format = 251
 
