@@ -31,6 +31,7 @@ import cbor2
 #To get the temperature data
 from tinkerforge.ip_connection import IPConnection
 from tinkerforge.bricklet_temperature import BrickletTemperature
+from tinkerforge.bricklet_temperature_v2 import BrickletTemperatureV2
 from tinkerforge.bricklet_humidity_v2 import BrickletHumidityV2
 from tinkerforge.bricklet_humidity import BrickletHumidity
 
@@ -82,6 +83,8 @@ class PIDSender:
             self.ipcon = IPConnection()
             if self.sensor_type=="temperature":
                 self.bricklet = BrickletTemperature(self.uid,self.ipcon)
+            if self.sensor_type=="temperaturev2":
+                self.bricklet = BrickletTemperatureV2(self.uid,self.ipcon)
             elif self.sensor_type=="humidity":
                 self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
             else:

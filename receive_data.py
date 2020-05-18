@@ -75,7 +75,7 @@ except FileNotFoundError:
     fileToWrite=open("temperature_data_"+(str(datetime.now())[:19]).replace(" ", "_")+".txt",'w', buffering=1)
 
 fileToWrite.write("# The first coloumn of data is the time, the second is the  temperature and the last is the  output of the controller.\n\n")
-fileToWrite.write("# The settings of the controller are:\n"+"# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=1000))
+fileToWrite.write("# The settings of the controller are:\n# kp: {kp}, ki: {ki}, kd: {kd}, setpoint: {setpoint}, sampling interval: {sampling_interval} ms\n\n".format(kp=controller.getKp(), ki=controller.getKi(), kd=controller.getKd(), setpoint=controller.getSetpoint(), sampling_interval=1000))
 if __name__ == "__main__":
 
         data=b''
