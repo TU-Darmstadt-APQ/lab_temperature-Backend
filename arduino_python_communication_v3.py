@@ -83,7 +83,7 @@ class PIDSender:
             self.ipcon = IPConnection()
             if self.sensor_type=="temperature":
                 self.bricklet = BrickletTemperature(self.uid,self.ipcon)
-            if self.sensor_type=="temperaturev2":
+            if self.sensor_type=="temperatureV2":
                 self.bricklet = BrickletTemperatureV2(self.uid,self.ipcon)
             elif self.sensor_type=="humidity":
                 self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
