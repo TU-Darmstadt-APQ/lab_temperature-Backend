@@ -29,11 +29,20 @@ assert pid_setpoint is not None, "\"PID_TIMEOUT\" environment variable  found. C
 
 dac_enable_gain = os.getenv("OUTPUT_ENABLE_GAIN", True)
 
+# The temperature range is -40 °C - 125 °C
+# We will convert this range to a uin32_t (Q16.16 notation)
+# To do so, we need to project the range [-40, 125] -> [0,165] => +40
+
+# hence (temp + 40) / 165
+# We want decent magnitude and fractional resolution, so we split the the 32 bit into equal parts
+# hence (x / 2**16)
+
 # K is Kelvin
 # conversion:
-# kp: dac_bit_values / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
-# ki: dac_bit_values / (K s) * 165 / 2**16 adc_bit_values / K in Q11.20 notation
-# kd: dac_bit_values * s / K * 165 / 2**16 adc_bit_values / K in Q11.20 notation
+# kp: dac_bit_values / K * 165 / 2**16 (adc_bit_values / K) in Q11.20 notation
+# ki: dac_bit_values / (K s) * 165 / 2**16 (adc_bit_values / K) in Q11.20 notation
+# kd: dac_bit_values * s / K * 165 / 2**16 (adc_bit_values / K) in Q11.20 notation
+# The Q11.20 notation will be converted to a 12 bit value
 pid_kp = int(float(pid_kp) * 165 / 2**16 * 2**20)
 pid_ki = int(float(pid_ki) * 165 / 2**16 * 2**20)
 pid_kd = int(float(pid_kd) * 165 / 2**16 * 2**20)

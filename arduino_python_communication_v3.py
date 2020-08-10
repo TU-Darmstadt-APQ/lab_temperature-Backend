@@ -83,7 +83,7 @@ class PIDSender:
             self.ipcon = IPConnection()
             if self.sensor_type=="temperature":
                 self.bricklet = BrickletTemperature(self.uid,self.ipcon)
-            if self.sensor_type=="temperatureV2":
+            elif self.sensor_type=="temperatureV2":
                 self.bricklet = BrickletTemperatureV2(self.uid,self.ipcon)
             elif self.sensor_type=="humidity":
                 self.bricklet = BrickletHumidityV2(self.uid,self.ipcon)
@@ -169,6 +169,9 @@ class PIDSender:
         return self.baudRate
 
     def getTemperature(self):
+        # The temperature range is -40 °C - 125 °C
+        # We will convert this range to a uin32_t
+        # hence (temp + 40) / 165
         return int((self.bricklet.get_temperature()/100 + 40) / 165 * 2**16)
 
     def getBuffer(self):
