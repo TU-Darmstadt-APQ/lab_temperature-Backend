@@ -93,7 +93,7 @@ class PIDSender:
             self.ipcon.connect(self.host,self.port)
 
     def set_gain(self, value):
-        self.dataToSend[constants.MessageType.set_gain] = value
+        self.dataToSend[constants.MessageType.set_gain] = bool(value)
 
     def set_kp(self, value):
         self.dataToSend[constants.MessageType.set_kp] = value
