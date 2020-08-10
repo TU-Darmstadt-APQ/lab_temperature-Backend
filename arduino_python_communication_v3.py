@@ -190,7 +190,8 @@ class PIDSenderEthernet(PIDSender):
 
         import socket
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__socket.connect((controller_ip, controller_port)) 
+        self.socket.connect((controller_ip, controller_port))
+        self.socket.settimeout(0.5)
 
     #Method to send the temperature of the Tinkerforge Bricklet to the controller.
     def sendTemperature(self):
@@ -201,7 +202,7 @@ class PIDSenderEthernet(PIDSender):
             constants.MessageType.set_input: temperature,
           })
         )
-        self.__socket.send(data)
+        self.socket.send(data)
         return temperature
 
     """
@@ -227,7 +228,7 @@ class PIDSenderEthernet(PIDSender):
         if encodedLength > 255:
             raise OverflowError("The length of the encoded data package is "+str(encodedLength)+". It must be smaller than 255 bytes")
 
-        self.__socket.send(encodedData)
+        self.socket.send(encodedData)
 
         for key in self.dataToSend:
             if key==1:

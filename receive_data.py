@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import os
+import socket
 
 from arduino_python_communication_v3 import *
 import constants
@@ -98,30 +99,33 @@ if __name__ == "__main__":
                 startTime = time.time()
 
             #Read the answer of the Arduino with Cbor and Cobs.
-            recievedByte=controller.socket.recv(1)
-
-            if recievedByte==b'\x00':
-                #print(data)
-                try:
-                    result = cbor2.loads(cobs.decode(data))
-                    try:
-                        if result.get(constants.MessageType.set_input, constants.MessageCode.error_invalid_command) == constants.MessageCode.messageAck:
-                            line = "{timestamp},{temperature:.2f},{raw},{output}".format(timestamp=datetime.utcnow(), temperature=temperature/2**16*165-40, raw=temperature, output=result[constants.MessageType.callback_update_value])
-                            fileToWrite.write(line+"\n")
-                            print(line)
-                        else:
-                           print(result)
-                    except KeyError:
-                        print("Error: Did not receive an update value callback although we send an updated value")
-                        print("RAW data: {data}\nDecoded data: {decoded_data}".format(data=data, decoded_data=cobs.decode(data)))
-                except cobs.DecodeError:
-                    print("Error decoding data: {data}".format(data=data))
-
-                #Reinitialize the bytearray for new data.
-                data=b''
+            try:
+                recievedByte=controller.socket.recv(1)
+            except socket.timeout as e:
+                continue
             else:
-                data = data + recievedByte
-                #Sleep the script to reduce the cpu load.
-                #0.001 is the minimal sample time of the controller.
-                time.sleep(0.1)
+                if recievedByte==b'\x00':
+                    #print(data)
+                    try:
+                        result = cbor2.loads(cobs.decode(data))
+                        try:
+                            if result.get(constants.MessageType.set_input, constants.MessageCode.error_invalid_command) == constants.MessageCode.messageAck:
+                                line = "{timestamp},{temperature:.2f},{raw},{output}".format(timestamp=datetime.utcnow(), temperature=temperature/2**16*165-40, raw=temperature, output=result[constants.MessageType.callback_update_value])
+                                fileToWrite.write(line+"\n")
+                                print(line)
+                            else:
+                               print(result)
+                        except KeyError:
+                            print("Error: Did not receive an update value callback although we send an updated value")
+                            print("RAW data: {data}\nDecoded data: {decoded_data}".format(data=data, decoded_data=cobs.decode(data)))
+                    except cobs.DecodeError:
+                        print("Error decoding data: {data}".format(data=data))
+
+                    #Reinitialize the bytearray for new data.
+                    data=b''
+                else:
+                    data = data + recievedByte
+                    #Sleep the script to reduce the cpu load.
+                    #0.001 is the minimal sample time of the controller.
+                    #time.sleep(0.1)
 fileToWrite.close()
