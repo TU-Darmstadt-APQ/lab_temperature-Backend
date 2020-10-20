@@ -29,7 +29,7 @@ except ValueError:
   pid_timeout = None
 assert pid_setpoint is not None, "\"PID_TIMEOUT\" environment variable  found. Cannot create controller."
 
-dac_enable_gain = bool(strtobool(os.getenv("OUTPUT_ENABLE_GAIN", True)))
+dac_enable_gain = bool(strtobool(os.getenv("OUTPUT_ENABLE_GAIN", 'true')))
 
 # The temperature range is -40 °C - 125 °C
 # We will convert this range to a uin32_t (Q16.16 notation)
