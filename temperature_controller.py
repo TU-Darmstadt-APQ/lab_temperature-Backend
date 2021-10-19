@@ -80,7 +80,7 @@ class LabtempController():
             await asyncio.gather(
                 controller.set_lower_output_limit(0),
                 controller.set_upper_output_limit(0xFFF),  # 12-bit DAC
-                controller.set_dac_gain(True),  # Enable 10 V output (Gain x2)
+                controller.set_dac_gain(config['enable_gain']),  # Enable 10 V output (Gain x2)
                 controller.set_timeout(int(config['timeout']*1000)),  # time in ms
                 controller.set_pid_feedback_direction(FeedbackDirection.NEGATIVE),
                 # Those values need some explanation:
@@ -147,6 +147,7 @@ class LabtempController():
                 'kd': config('PID_KD', cast=float),
                 'setpoint': config('PID_SETPOINT', cast=float),
                 'timeout': config('PID_TIMEOUT', cast=float),
+                'enable_gain': config('OUTPUT_ENABLE_GAIN', cast=bool, default=True)
             }
         except UndefinedValueError as exc:
             self.__logger.error("Environment variable undefined: %s", exc)
