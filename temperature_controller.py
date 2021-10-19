@@ -100,7 +100,7 @@ class LabtempController():
                 # kd: dac_bit_values * s / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
                 controller.set_kp(config['kp']*165 / 2**16 * 2**20),
                 controller.set_ki(config['ki']*165 / 2**16 * 2**20),
-                controller.set_ki(config['kp']*165 / 2**16 * 2**20),
+                controller.set_kd(config['kd']*165 / 2**16 * 2**20),
                 # To ensure the input is always positive, we add 40 K
                 controller.set_setpoint(max(int((float(config['setpoint']) + 40) / 165 * 2**16),0)),
                 controller.set_enabled(True),
