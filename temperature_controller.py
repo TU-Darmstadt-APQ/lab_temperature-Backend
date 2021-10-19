@@ -109,8 +109,8 @@ class LabtempController():
             data_stream = stream.call(input_queue.get) | pipe.cycle()
             async with data_stream.stream() as streamer:
                 async for item in streamer:
-                    # The returned temperature is in K
-                    result = await controller.set_input(int((item-Decimal("273.15")+40)/165*2**16), return_output=True)  # convert to the units of the PID as detailed above
+                    # The queued items are temperature values in K
+                    await controller.set_input(int((item-Decimal("273.15")+40)/165*2**16), return_output=False)  # convert to the units of the PID as detailed above
 
     async def run(self):
         """
