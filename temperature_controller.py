@@ -36,7 +36,7 @@ from decouple import config, UndefinedValueError
 from labnode_async import IPConnection as LabnodeIPConnection, FeedbackDirection
 from labnode_async.devices import FunctionID
 from tinkerforge_async import IPConnectionAsync, device_factory
-from tinkerforge_async.ip_connection_helper import base58decode
+from tinkerforge_async.ip_connection_helper import base58decode, base58encode
 
 
 class LabtempController():
@@ -62,10 +62,12 @@ class LabtempController():
     async def tinkerforge_producer(self, host, port, sensor_uid, interval, output_queue, reconnect_interval=3):
         self.__logger.info("Connecting producer to Tinkerforge brick at '%s:%i", host, port)
         async with IPConnectionAsync(host=host, port=port) as ipcon:
+            self.__logger.info("Connected to Tinkerforge brick at '%s:%i", host, port)
             # Enumerate the brick and wait for our sensor
             await ipcon.enumerate()
             async for device in ipcon.read_enumeration():
                 if device['uid'] == sensor_uid:
+                    self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), host, port)
                     break
             # Once we have the sensor, read it at the configured interval
             bricklet = device_factory.get(ipcon, **device)
