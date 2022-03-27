@@ -57,7 +57,7 @@ class LabtempController():
         await ipcon.enumerate()
         async for device in ipcon.read_enumeration():
             if device['uid'] == sensor_uid:
-                self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), ipcon.host, ipcon.port)
+                self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), ipcon.hostname, ipcon.port)
                 break
         # Once we have the sensor, read it at the configured interval
         bricklet = device_factory.get(ipcon, **device)
