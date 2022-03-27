@@ -38,6 +38,7 @@ from labnode_async.devices import FunctionID
 from tinkerforge_async import IPConnectionAsync, device_factory
 from tinkerforge_async.ip_connection_helper import base58decode, base58encode
 
+from _version import __version__
 
 class LabtempController():
     """
@@ -51,68 +52,56 @@ class LabtempController():
         """
         self.__logger = logging.getLogger(__name__)
 
-    @asynccontextmanager
-    async def database_connector(self, hostname, port, username, password, database):
-        conn = await asyncpg.connect(user=username, password=password, database=database, host=hostname)
-        try:
-            yield conn
-        finally:
-            await conn.close()
+    async def tinkerforge_producer(self, ipcon, sensor_uid, interval, output_queue, reconnect_interval=3):
+        # Enumerate the brick and wait for our sensor
+        await ipcon.enumerate()
+        async for device in ipcon.read_enumeration():
+            if device['uid'] == sensor_uid:
+                self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), ipcon.host, ipcon.port)
+                break
+        # Once we have the sensor, read it at the configured interval
+        bricklet = device_factory.get(ipcon, **device)
+        data_stream = stream.call(bricklet.get_temperature) | pipe.cycle() | pipe.spaceout(interval)
+        async with data_stream.stream() as streamer:
+            async for item in streamer:
+                output_queue.put_nowait(item)
 
-    async def tinkerforge_producer(self, host, port, sensor_uid, interval, output_queue, reconnect_interval=3):
-        self.__logger.info("Connecting producer to Tinkerforge brick at '%s:%i", host, port)
-        async with IPConnectionAsync(host=host, port=port) as ipcon:
-            self.__logger.info("Connected to Tinkerforge brick at '%s:%i", host, port)
-            # Enumerate the brick and wait for our sensor
-            await ipcon.enumerate()
-            async for device in ipcon.read_enumeration():
-                if device['uid'] == sensor_uid:
-                    self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), host, port)
-                    break
-            # Once we have the sensor, read it at the configured interval
-            bricklet = device_factory.get(ipcon, **device)
-            data_stream = stream.call(bricklet.get_temperature) | pipe.cycle() | pipe.spaceout(interval)
-            async with data_stream.stream() as streamer:
-                async for item in streamer:
-                    output_queue.put_nowait(item)
-
-    async def labnode_consumer(self, host, port, config, input_queue):
-        async with LabnodeIPConnection(host=host, port=port) as controller:
-            # configure the PID controller
-            await asyncio.gather(
-                controller.set_lower_output_limit(0),
-                controller.set_upper_output_limit(0xFFF),  # 12-bit DAC
-                controller.set_dac_gain(config['enable_gain']),  # Enable 10 V output (Gain x2)
-                controller.set_timeout(int(config['timeout']*1000)),  # time in ms
-                controller.set_pid_feedback_direction(FeedbackDirection.NEGATIVE),
-                # Those values need some explanation:
-                # The target is an unsigned Qm.n 32 bit number, which is positive (>=0) See this link
-                # for details: https://en.wikipedia.org/wiki/Q_%28number_format%29
-                # To determine m and n, we need to look at the desired output. The output is a 12 bit DAC.
-                # The pid basically does input * kp -> output, which should be a 12 bit number (Q12.20)
-                # The source sensor (Tinkerforge) has a temperature range of -40 °C to 125 °C
-                # (Temperature Bricklet v1), so this makes 165 K, we normalize this to 1 (/165).
-                # The input sensor (e.g. STS3x, Temperature Bricklet v2) has 16 bits of resolution (/2**16)
-                # and must be scaled to fit the output (*2**20).
-                # The whole caculation with units:
-                # K is Kelvin, s is seconds
-                # conversion:
-                # kp: dac_bit_values / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
-                # ki: dac_bit_values / (K s) * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
-                # kd: dac_bit_values * s / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
-                controller.set_kp(config['kp']*165 / 2**16 * 2**20),
-                controller.set_ki(config['ki']*165 / 2**16 * 2**20),
-                controller.set_kd(config['kd']*165 / 2**16 * 2**20),
-                # To ensure the input is always positive, we add 40 K
-                controller.set_setpoint(max(int((float(config['setpoint']) + 40) / 165 * 2**16),0)),
-                controller.set_enabled(True),
-            )
-            # Now pull the data from tinkerforge bricklet
-            data_stream = stream.call(input_queue.get) | pipe.cycle()
-            async with data_stream.stream() as streamer:
-                async for item in streamer:
-                    # The queued items are temperature values in K
-                    await controller.set_input(int((item-Decimal("273.15")+40)/165*2**16), return_output=False)  # convert to the units of the PID as detailed above
+    async def labnode_consumer(self, controller, config, input_queue):
+        # configure the PID controller
+        await asyncio.gather(
+            controller.set_lower_output_limit(0),
+            controller.set_upper_output_limit(0xFFF),  # 12-bit DAC
+            controller.set_dac_gain(config['enable_gain']),  # Enable 10 V output (Gain x2)
+            controller.set_timeout(int(config['timeout']*1000)),  # time in ms
+            controller.set_pid_feedback_direction(FeedbackDirection.NEGATIVE),
+            # Those values need some explanation:
+            # The target is an unsigned Qm.n 32 bit number, which is positive (>=0) See this link
+            # for details: https://en.wikipedia.org/wiki/Q_%28number_format%29
+            # To determine m and n, we need to look at the desired output. The output is a 12 bit DAC.
+            # The pid basically does input * kp -> output, which should be a 12 bit number (Q12.20)
+            # The source sensor (Tinkerforge) has a temperature range of -40 °C to 125 °C
+            # (Temperature Bricklet v1), so this makes 165 K, we normalize this to 1 (/165).
+            # The input sensor (e.g. STS3x, Temperature Bricklet v2) has 16 bits of resolution (/2**16)
+            # and must be scaled to fit the output (*2**20).
+            # The whole caculation with units:
+            # K is Kelvin, s is seconds
+            # conversion:
+            # kp: dac_bit_values / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
+            # ki: dac_bit_values / (K s) * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
+            # kd: dac_bit_values * s / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
+            controller.set_kp(config['kp']*165 / 2**16 * 2**20),
+            controller.set_ki(config['ki']*165 / 2**16 * 2**20),
+            controller.set_kd(config['kd']*165 / 2**16 * 2**20),
+            # To ensure the input is always positive, we add 40 K
+            controller.set_setpoint(max(int((float(config['setpoint']) + 40) / 165 * 2**16),0)),
+            controller.set_enabled(True),
+        )
+        # Now pull the data from tinkerforge bricklet
+        data_stream = stream.call(input_queue.get) | pipe.cycle()
+        async with data_stream.stream() as streamer:
+            async for item in streamer:
+                # The queued items are temperature values in K
+                await controller.set_input(int((item-Decimal("273.15")+40)/165*2**16), return_output=False)  # convert to the units of the PID as detailed above
 
     async def run(self):
         """
@@ -120,7 +109,7 @@ class LabtempController():
         loop. Execute shutdown() to kill it.
         """
         self.__logger.warning("#################################################")
-        self.__logger.warning("Starting Daemon...")
+        self.__logger.warning("Starting Daemon v%s...", __version__)
         self.__logger.warning("#################################################")
 
         # Catch signals and shutdown
@@ -160,11 +149,17 @@ class LabtempController():
             stack.push_async_callback(self.cancel_tasks, tasks)
             message_queue = asyncio.Queue()
 
-            consumer = asyncio.create_task(self.labnode_consumer(controller_host, controller_port, pid_config, message_queue))
+            self.__logger.info("Connecting consumer to Labnode at '%s:%i", controller_host, controller_port)
+            controller = await stack.enter_async_context(LabnodeIPConnection(host=controller_host, port=controller_port))
+            self.__logger.info("Connected to Labnode at '%s:%i", controller_host, controller_port)
+            consumer = asyncio.create_task(self.labnode_consumer(controller, pid_config, message_queue))
             tasks.add(consumer)
 
             # Start the Tinkerforge data producer
-            task = asyncio.create_task(self.tinkerforge_producer(sensor_host, sensor_port, sensor_uid, interval, message_queue))
+            self.__logger.info("Connecting producer to Tinkerforge brick at '%s:%i", sensor_host, sensor_port)
+            ipcon = await stack.enter_async_context(IPConnectionAsync(host=sensor_host, port=sensor_port))
+            self.__logger.info("Connected to Tinkerforge brick at '%s:%i", sensor_host, sensor_port)
+            task = asyncio.create_task(self.tinkerforge_producer(ipcon, sensor_uid, interval, message_queue))
             tasks.add(task)
 
             await asyncio.gather(*tasks)
