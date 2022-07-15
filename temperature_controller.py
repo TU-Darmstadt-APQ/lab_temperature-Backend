@@ -55,7 +55,7 @@ class LabtempController():
     async def tinkerforge_producer(self, ipcon, sensor_uid, interval, output_queue, reconnect_interval=3):
         # Enumerate the brick and wait for our sensor
         await ipcon.enumerate()
-        async for device in ipcon.read_enumeration():
+        async for _, device in ipcon.read_enumeration():
             if device.uid == sensor_uid:
                 self.__logger.info("Found Tinkerforge sensor %i (%s) at '%s:%i", sensor_uid, base58encode(sensor_uid), ipcon.hostname, ipcon.port)
                 break
