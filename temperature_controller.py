@@ -150,7 +150,7 @@ class LabtempController():
             message_queue = asyncio.Queue()
 
             self.__logger.info("Connecting consumer to Labnode at '%s:%i", controller_host, controller_port)
-            controller = await stack.enter_async_context(LabnodeIPConnection(host=controller_host, port=controller_port))
+            controller = await stack.enter_async_context(LabnodeIPConnection(hostname=controller_host, port=controller_port))
             self.__logger.info("Connected to Labnode at '%s:%i", controller_host, controller_port)
             consumer = asyncio.create_task(self.labnode_consumer(controller, pid_config, message_queue))
             tasks.add(consumer)
