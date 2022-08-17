@@ -1,4 +1,0 @@
-aiostream~=0.4.3
-python-decouple~=3.5
-tinkerforge_async~=1.4.1
-labnode_async~=0.15.2
