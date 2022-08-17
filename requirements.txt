@@ -1,4 +1,4 @@
-aiostream>=0.4.3
-python-decouple>=3.5
--e git+https://github.com/PatrickBaus/TinkerforgeAsync@generators#egg=tinkerforge_async
+aiostream~=0.4.3
+python-decouple~=3.5
+tinkerforge_async~=1.4.1
 labnode_async~=0.15.2
