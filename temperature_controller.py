@@ -21,6 +21,7 @@
 The lab temperature controller uses a PID controller and the Tinkerforge sensors to regulate
 the room temperature.
 """
+from __future__ import annotations
 
 import asyncio
 import logging
@@ -36,12 +37,16 @@ from labnode_async import FeedbackDirection
 from labnode_async import IPConnection as LabnodeIPConnection
 from labnode_async import PidController
 from tinkerforge_async import IPConnectionAsync
+from tinkerforge_async.bricklet_temperature import BrickletTemperature
+from tinkerforge_async.bricklet_temperature_v2 import BrickletTemperatureV2
 from tinkerforge_async.ip_connection_helper import base58decode, base58encode
 
 from _version import __version__
 
 
 class PidConfig(TypedDict):
+    """The PID controller configuration as read from the os environment."""
+
     kp: float
     ki: float
     kd: float
@@ -64,17 +69,27 @@ class Controller:
         self.__logger = logging.getLogger(__name__)
 
     async def tinkerforge_producer(
-        self,
-        ipcon: IPConnectionAsync,
-        sensor_uid: int,
-        interval: float,
-        output_queue: asyncio.Queue,
-        reconnect_interval: float = 3,
-    ):
-        # Enumerate the brick and wait for our sensor
+        self, ipcon: IPConnectionAsync, sensor_uid: int, interval: float, output_queue: asyncio.Queue[Decimal]
+    ) -> None:
+        """
+        Enumerate the brick, search for our sensor and query its data.
+
+        Parameters
+        ----------
+        ipcon: IPConnectionAsync
+            The ip connection used by the brick
+        sensor_uid: int
+            The id of the temperature sensor
+        interval: float
+            The number of seconds to wait in between queries
+        output_queue: Queue of Decimal
+            A queue that hold the temperature values in Kelvin
+        """
         await ipcon.enumerate()
+        sensor: BrickletTemperature | BrickletTemperatureV2 | None = None
         async for _, device in ipcon.read_enumeration():
             if device.uid == sensor_uid:
+                sensor = device
                 self.__logger.info(
                     "Found Tinkerforge sensor %i (%s) at '%s:%i",
                     sensor_uid,
@@ -84,13 +99,28 @@ class Controller:
                 )
                 break
         # Once we have the sensor, read it at the configured interval
-        data_stream = stream.call(device.get_temperature) | pipe.cycle() | pipe.spaceout(interval)
-        async with data_stream.stream() as streamer:
-            async for item in streamer:
-                output_queue.put_nowait(item)
+        if sensor:
+            data_stream = stream.call(sensor.get_temperature) | pipe.cycle() | pipe.spaceout(interval)
+            async with data_stream.stream() as streamer:
+                async for item in streamer:
+                    output_queue.put_nowait(item)
 
     @staticmethod
-    async def labnode_consumer(controller: PidController, pid_config: PidConfig, input_queue: asyncio.Queue):
+    async def labnode_consumer(
+        controller: PidController, pid_config: PidConfig, input_queue: asyncio.Queue[Decimal]
+    ) -> None:
+        """
+        Configures the PID controller and feeds it new input values using the input queue.
+
+        Parameters
+        ----------
+        controller: PidController
+            The PID controller to feed
+        pid_config: PidConfig
+            A dict containing the controller config
+        input_queue: Queue of Decimal
+            The input queue containing new input values for the PID controller
+        """
         # configure the PID controller
         await asyncio.gather(
             controller.set_lower_output_limit(0),
@@ -120,7 +150,7 @@ class Controller:
             controller.set_setpoint(max(int((float(pid_config["setpoint"]) + 40) / 165 * 2**16), 0)),
             controller.set_enabled(True),
         )
-        # Now pull the data from tinkerforge bricklet
+        # Now pull the data from the input queue and feed it to the PID controller
         data_stream = stream.call(input_queue.get) | pipe.cycle()
         async with data_stream.stream() as streamer:
             async for item in streamer:
@@ -128,7 +158,7 @@ class Controller:
                 # so we need to convert them to the units of the PID as detailed above
                 await controller.set_input(int((item - Decimal("273.15") + 40) / 165 * 2**16), return_output=False)
 
-    async def run(self):
+    async def run(self) -> None:  # pylint: disable=too-many-locals
         """
         Start the daemon and keep it running through the while (True)
         loop. Execute shutdown() to kill it.
@@ -153,7 +183,7 @@ class Controller:
             try:
                 sensor_uid = int(sensor_uid)
             except ValueError:
-                # We need to convert the value from base58 encoding to integers
+                # We need to convert the value from base58 encoding to an integer
                 sensor_uid = base58decode(sensor_uid)
 
             pid_config: PidConfig = {
@@ -169,9 +199,9 @@ class Controller:
             return
 
         async with AsyncExitStack() as stack:
-            tasks = set()
+            tasks: set[asyncio.Task] = set()
             stack.push_async_callback(self.cancel_tasks, tasks)
-            message_queue = asyncio.Queue()
+            message_queue: asyncio.Queue[Decimal] = asyncio.Queue()
 
             self.__logger.info("Connecting consumer to Labnode at '%s:%i", controller_host, controller_port)
             controller = await stack.enter_async_context(
@@ -192,7 +222,7 @@ class Controller:
 
             await asyncio.gather(*tasks)
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """
         Stops the daemon and gracefully disconnect from all clients.
         """
@@ -215,18 +245,22 @@ class Controller:
             self.__logger.exception("Error while reaping tasks during shutdown")
 
     @staticmethod
-    async def cancel_tasks(tasks):
+    async def cancel_tasks(tasks) -> None:
+        """Cancel all remaining tasks and wait for their completion."""
         for task in tasks:
             if task.done():
                 continue
             task.cancel()
+        for task in tasks:
+            if task.done():
+                continue
             try:
                 await task
             except asyncio.CancelledError:
                 pass
 
 
-async def main():
+async def main() -> None:
     """
     The main (infinite) loop, that runs until the controller has shut down.
     """
