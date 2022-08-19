@@ -24,7 +24,7 @@ classifiers = [
 keywords = ["IoT", "PID", "PID controller",]
 dependencies = [
     "typing-extensions; python_version <'3.11'",
-    "aiostream ~= 0.4.3",
+    "aiostream ~= 0.4.4",
     "labnode_async ~= 0.15.2",
     "python-decouple ~= 3.5",
     "tinkerforge_async ~= 1.4.1",
@@ -68,7 +68,7 @@ markers = [
 requires = [
     "setuptools>=61.0",
     "typing-extensions; python_version <'3.11'",
-    "aiostream ~= 0.4.3",
+    "aiostream ~= 0.4.4",
     "labnode_async ~= 0.15.2",
     "python-decouple ~= 3.5",
     "tinkerforge_async ~= 1.4.1",
