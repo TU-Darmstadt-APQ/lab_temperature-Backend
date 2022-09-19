@@ -138,7 +138,7 @@ class Controller:
             controller.set_timeout(pid_config["timeout"]),  # time in seconds
             controller.set_pid_feedback_direction(FeedbackDirection.NEGATIVE),
             controller.set_auto_resume(pid_config["enable_autoresume"]),
-            controller.set_fallback_update_interval(pid_config["update_interval"]),  # time in seconds
+            controller.set_secondary_pid_update_interval(pid_config["update_interval"]),  # time in seconds
             # Those values need some explanation:
             # The target is an unsigned Qm.n 32-bit number, which is positive (>=0) See this link
             # for details: https://en.wikipedia.org/wiki/Q_%28number_format%29
