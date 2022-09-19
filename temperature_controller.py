@@ -44,15 +44,24 @@ from tinkerforge_async.ip_connection_helper import base58decode, base58encode
 from _version import __version__
 
 
-class PidConfig(TypedDict):
-    """The PID controller configuration as read from the os environment."""
+class PidParameters(TypedDict):
+    """The PID controller parameters for each of the integrated PID controllers."""
 
     kp: float
     ki: float
     kd: float
     setpoint: float
+
+
+class PidConfig(TypedDict):
+    """The PID controller configuration as read from the os environment."""
+
+    primary_pid: PidParameters
+    secondary_pid: PidParameters
     timeout: float
     enable_gain: bool
+    enable_autoresume: bool
+    update_interval: float  # in s
 
 
 class Controller:
@@ -126,13 +135,15 @@ class Controller:
             controller.set_lower_output_limit(0),
             controller.set_upper_output_limit(0xFFF),  # 12-bit DAC
             controller.set_dac_gain(pid_config["enable_gain"]),  # Enable 10 V output (Gain x2)
-            controller.set_timeout(int(pid_config["timeout"] * 1000)),  # time in ms
+            controller.set_timeout(pid_config["timeout"]),  # time in seconds
             controller.set_pid_feedback_direction(FeedbackDirection.NEGATIVE),
+            controller.set_auto_resume(pid_config["enable_autoresume"]),
+            controller.set_fallback_update_interval(pid_config["update_interval"]),  # time in seconds
             # Those values need some explanation:
             # The target is an unsigned Qm.n 32-bit number, which is positive (>=0) See this link
             # for details: https://en.wikipedia.org/wiki/Q_%28number_format%29
             # To determine m and n, we need to look at the desired output. The output is a 12 bit DAC.
-            # The pid basically does input * kp -> output, which should be a 12 bit number (Q12.20)
+            # The PID basically does input * kp -> output, which should be a 12 bit number (Q12.20)
             # The source sensor (Tinkerforge) has a temperature range of -40 °C to 125 °C
             # (Temperature Bricklet v1), so this makes 165 K, we normalize this to 1 (/165).
             # The input sensor (e.g. STS3x, Temperature Bricklet v2) has 16 bits of resolution (/2**16)
@@ -143,12 +154,22 @@ class Controller:
             # kp: dac_bit_values / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
             # ki: dac_bit_values / (K s) * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
             # kd: dac_bit_values * s / K * 165 / 2**16 (adc_bit_values / K) in Q12.20 notation
-            controller.set_kp(pid_config["kp"] * 165 / 2**16 * 2**20),
-            controller.set_ki(pid_config["ki"] * 165 / 2**16 * 2**20),
-            controller.set_kd(pid_config["kd"] * 165 / 2**16 * 2**20),
+            controller.set_kp(pid_config["primary_pid"]["kp"] * 165 / 2**16 * 2**20, config_id=0),
+            controller.set_ki(pid_config["primary_pid"]["ki"] * 165 / 2**16 * 2**20, config_id=0),
+            controller.set_kd(pid_config["primary_pid"]["kd"] * 165 / 2**16 * 2**20, config_id=0),
             # To ensure the input is always positive, we add 40 K
-            controller.set_setpoint(max(int((float(pid_config["setpoint"]) + 40) / 165 * 2**16), 0)),
+            controller.set_setpoint(
+                max(int((pid_config["primary_pid"]["setpoint"] + 40) / 165 * 2**16), 0), config_id=0
+            ),
+            # And the configuration for the secondary PID
+            controller.set_kp(pid_config["secondary_pid"]["kp"] * 165 / 2**16 * 2**20, config_id=1),
+            controller.set_ki(pid_config["secondary_pid"]["ki"] * 165 / 2**16 * 2**20, config_id=1),
+            controller.set_kd(pid_config["secondary_pid"]["kd"] * 165 / 2**16 * 2**20, config_id=1),
+            controller.set_setpoint(
+                max(int((pid_config["secondary_pid"]["setpoint"] + 40) / 165 * 2**16), 0), config_id=1
+            ),
             controller.set_enabled(True),
+            controller.set_secondary_config(1),  # Set the secondary PID controller to use config #1
         )
         # Now pull the data from the input queue and feed it to the PID controller
         data_stream = stream.call(input_queue.get) | pipe.cycle()
@@ -179,7 +200,6 @@ class Controller:
             sensor_host = config("SENSOR_IP")
             sensor_port = config("SENSOR_PORT", cast=int, default=4223)
             sensor_uid = config("SENSOR_UID")
-            interval = config("PID_INTERVAL", cast=float)
             try:
                 sensor_uid = int(sensor_uid)
             except ValueError:
@@ -187,12 +207,22 @@ class Controller:
                 sensor_uid = base58decode(sensor_uid)
 
             pid_config: PidConfig = {
-                "kp": config("PID_KP", cast=float),
-                "ki": config("PID_KI", cast=float),
-                "kd": config("PID_KD", cast=float),
-                "setpoint": config("PID_SETPOINT", cast=float),
+                "primary_pid": {
+                    "kp": config("PRIMARY_PID_KP", cast=float),
+                    "ki": config("PRIMARY_PID_KI", cast=float),
+                    "kd": config("PRIMARY_PID_KD", cast=float),
+                    "setpoint": config("PRIMARY_PID_SETPOINT", cast=float),
+                },
+                "secondary_pid": {
+                    "kp": config("SECONDARY_PID_KP", cast=float),
+                    "ki": config("SECONDARY_PID_KI", cast=float),
+                    "kd": config("SECONDARY_PID_KD", cast=float),
+                    "setpoint": config("SECONDARY_PID_SETPOINT", cast=float),
+                },
+                "update_interval": config("PID_INTERVAL", cast=float),
                 "timeout": config("PID_TIMEOUT", cast=float),
                 "enable_gain": config("OUTPUT_ENABLE_GAIN", cast=bool, default=True),
+                "enable_autoresume": config("AUTO_RESUME", cast=bool, default=True),
             }
         except UndefinedValueError as exc:
             self.__logger.error("Environment variable undefined: %s", exc)
@@ -217,7 +247,9 @@ class Controller:
             self.__logger.info("Connecting producer to Tinkerforge brick at '%s:%i", sensor_host, sensor_port)
             ipcon = await stack.enter_async_context(IPConnectionAsync(host=sensor_host, port=sensor_port))
             self.__logger.info("Connected to Tinkerforge brick at '%s:%i", sensor_host, sensor_port)
-            task = asyncio.create_task(self.tinkerforge_producer(ipcon, sensor_uid, interval, message_queue))
+            task = asyncio.create_task(
+                self.tinkerforge_producer(ipcon, sensor_uid, pid_config["update_interval"], message_queue)
+            )
             tasks.add(task)
 
             await asyncio.gather(*tasks)
