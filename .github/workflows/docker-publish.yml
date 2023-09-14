@@ -1,4 +1,4 @@
-name: Docker
+name: Docker publish
 
 on:
   push:
@@ -55,9 +55,12 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            GIT_REPOSITORY=${{ github.repository }}
+            "SSH_DEPLOY_KEY=${{ secrets.DOCKER_DEPLOY_KEY }}"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -1,6 +1,8 @@
 FROM alpine:3.18 as builder
 
 ARG BUILD_CORES
+ARG GIT_REPOSITORY
+ARG SSH_DEPLOY_KEY
 
 # Build the
 RUN COLOUR='\e[1;93m' && \
@@ -13,13 +15,16 @@ RUN COLOUR='\e[1;93m' && \
 
 # Define the python virtual environment
 ENV VIRTUAL_ENV=/opt/venv
-RUN python3 -m venv $VIRTUAL_ENV
+RUN python3 -m venv --upgrade-deps $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-ADD https://api.github.com/repos/TU-Darmstadt-APQ/lab_temperature-Backend/git/refs/heads/master version.json
 RUN COLOUR='\e[1;93m' && \
   echo -e "${COLOUR}Installing Labnode PID daemon...\e[0m" && \
-  git clone https://github.com/TU-Darmstadt-APQ/lab_temperature-Backend app && \
+  mkdir /root/.ssh/ && \
+  echo "${SSH_DEPLOY_KEY}" > /root/.ssh/id_rsa && \
+  chmod 600 /root/.ssh/id_rsa && \
+  ssh-keyscan github.com >> /root/.ssh/known_hosts && \
+  git clone git@github.com:${GIT_REPOSITORY}.git app && \
   pip install ./app && \
   echo -e "${COLOUR}Done.\e[0m"
 
@@ -48,4 +53,4 @@ RUN chown -R worker:worker /app
 
 USER worker
 
-CMD python3 -u /app/temperature_controller.py
+CMD python3 -OO -u /app/temperature_controller.py

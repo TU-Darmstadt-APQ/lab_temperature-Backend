@@ -25,9 +25,9 @@ keywords = ["IoT", "PID", "PID controller",]
 dependencies = [
     "typing-extensions; python_version <'3.11'",
     "aiostream ~= 0.4.5",
-    "labnode_async ~= 0.16.1",
-    "python-decouple ~= 3.5",
-    "tinkerforge_async ~= 1.4.2",
+    "labnode-async ~= 0.16.1",
+    "python-decouple ~= 3.8",
+    "tinkerforge-async ~= 1.4.2",
 ]
 dynamic = ["version"]
 
