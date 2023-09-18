@@ -13,6 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
@@ -25,9 +26,9 @@ keywords = ["IoT", "PID", "PID controller",]
 dependencies = [
     "typing-extensions; python_version <'3.11'",
     "aiostream ~= 0.4.5",
-    "labnode-async ~= 0.16.1",
+    "labnode-async ~= 0.16.2",
     "python-decouple ~= 3.8",
-    "tinkerforge-async ~= 1.4.2",
+    "tinkerforge-async ~= 1.4.3",
 ]
 dynamic = ["version"]
 
