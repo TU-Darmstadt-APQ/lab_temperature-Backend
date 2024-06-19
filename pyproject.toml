@@ -28,7 +28,7 @@ dependencies = [
     "aiostream ~= 0.6.1",
     "labnode-async ~= 0.16.2",
     "python-decouple ~= 3.8",
-    "tinkerforge-async ~= 1.4.3",
+    "tinkerforge-async ~= 1.5.0",
 ]
 dynamic = ["version"]
 
