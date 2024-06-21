@@ -1,4 +1,4 @@
-FROM alpine:3.20.0 as builder
+FROM alpine:3.20.1 as builder
 
 ARG BUILD_CORES
 ARG GIT_REPOSITORY
@@ -29,7 +29,7 @@ RUN COLOUR='\e[1;93m' && \
   pip install ./app && \
   echo -e "${COLOUR}Done.\e[0m"
 
-FROM alpine:3.20.0
+FROM alpine:3.20.1
 LABEL maintainer="Patrick Baus <patrick.baus@physik.tu-darmstadt.de>"
 LABEL description="Labnode PID controller daemon"
 
