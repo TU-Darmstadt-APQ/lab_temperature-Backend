@@ -1,4 +1,4 @@
-FROM alpine:3.20.3 as builder
+FROM alpine:3.20.3 AS builder
 
 ARG BUILD_CORES
 ARG GIT_REPOSITORY
@@ -54,4 +54,4 @@ RUN chown -R worker:worker /app
 
 USER worker
 
-CMD python3 -OO -u /app/temperature_controller.py
+CMD ["python3" "-OO" "-u" "/app/temperature_controller.py"]
