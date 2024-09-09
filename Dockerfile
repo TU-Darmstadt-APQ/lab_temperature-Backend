@@ -54,4 +54,4 @@ RUN chown -R worker:worker /app
 
 USER worker
 
-CMD ["python3" "-OO" "-u" "/app/temperature_controller.py"]
+CMD ["python3", "-OO", "-u", "/app/temperature_controller.py"]
