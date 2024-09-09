@@ -1,10 +1,7 @@
 FROM alpine:3.20.3 AS builder
 
-ARG BUILD_CORES
-ARG GIT_REPOSITORY
-ARG SSH_DEPLOY_KEY
+COPY . /app
 
-# Build the
 RUN COLOUR='\e[1;93m' && \
   echo -e "${COLOUR}Installing build dependencies...\e[0m" && \
   apk --no-cache add --virtual=build-dependencies \
@@ -21,11 +18,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN COLOUR='\e[1;93m' && \
   echo -e "${COLOUR}Installing Labnode PID daemon...\e[0m" && \
-  mkdir /root/.ssh/ && \
-  echo "${SSH_DEPLOY_KEY}" > /root/.ssh/id_rsa && \
-  chmod 600 /root/.ssh/id_rsa && \
-  ssh-keyscan github.com >> /root/.ssh/known_hosts && \
-  git clone git@github.com:${GIT_REPOSITORY}.git app && \
   pip install ./app && \
   echo -e "${COLOUR}Done.\e[0m"
 
