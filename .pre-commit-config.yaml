@@ -21,7 +21,7 @@ repos:
     rev: 24.8.0
     hooks:
     -   id: black
-        args: ['temperature_controller.py']
+        args: [ 'temperature_controller.py' ]
 -   repo: https://github.com/asottile/blacken-docs
     rev: 1.16.0
     hooks:
