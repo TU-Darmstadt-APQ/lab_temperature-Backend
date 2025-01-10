@@ -1,4 +1,4 @@
-FROM alpine:3.21.1 AS builder
+FROM alpine:3.21.2 AS builder
 
 COPY . /app
 
@@ -21,7 +21,7 @@ RUN COLOUR='\e[1;93m' && \
   pip install ./app && \
   echo -e "${COLOUR}Done.\e[0m"
 
-FROM alpine:3.21.1
+FROM alpine:3.21.2
 LABEL maintainer="Patrick Baus <patrick.baus@physik.tu-darmstadt.de>"
 LABEL description="Labnode PID controller daemon"
 
