@@ -122,7 +122,7 @@ jobs:
       packages: write
     steps:
       - name: Download manufacturing files artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: digests
           pattern: digest-*
