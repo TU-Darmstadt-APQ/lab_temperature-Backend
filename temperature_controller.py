@@ -21,6 +21,7 @@
 The lab temperature controller uses a PID controller and the Tinkerforge sensors to regulate
 the room temperature.
 """
+
 from __future__ import annotations
 
 import asyncio
