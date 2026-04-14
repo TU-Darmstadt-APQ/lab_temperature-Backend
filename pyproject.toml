@@ -37,15 +37,6 @@ dynamic = ["version"]
 "Bug Tracker" = "https://github.com/TU-Darmstadt-APQ/lab_temperature-Backend/issues"
 "Download" = "https://github.com/TU-Darmstadt-APQ/lab_temperature-Backend/releases"
 
-[project.optional-dependencies]
-dev = [
-    "black", "build", "isort", "mypy", "pre-commit", "pylint",
-]
-
-test = [
-    "mypy", "pylint",
-]
-
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 120
 
@@ -70,6 +61,20 @@ requires = [
     "setuptools>=82.0.1",
 ]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "black~=26.3.1",
+    "build~=1.4.3",
+    "isort~=8.0.1",
+    "pre_commit~=4.5.1",
+    "types-simplejson~=3.20.0.20260408",
+    {include-group = "lint"},
+]
+lint = [
+    "mypy~=1.20.1",
+    "pylint~=4.0.5",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "_version.__version__"}
