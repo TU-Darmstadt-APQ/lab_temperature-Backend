@@ -75,6 +75,9 @@ lint = [
     "mypy~=1.20.1",
     "pylint~=4.0.5",
 ]
+test = [
+    "pytest~=9.0.3",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "_version.__version__"}
