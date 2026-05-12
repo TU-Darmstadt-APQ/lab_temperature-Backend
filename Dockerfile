@@ -9,7 +9,10 @@ RUN COLOUR='\e[1;93m' && \
     openssh-client-common \
     openssh-client-default \
     git \
-    py3-pip && \
+    py3-pip \
+    build-base \
+    rust \
+    cargo && \
   echo -e "${COLOUR}Done.\e[0m"
 
 # Define the python virtual environment
