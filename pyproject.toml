@@ -76,7 +76,7 @@ lint = [
     "pylint~=4.0.5",
 ]
 test = [
-    "pytest~=9.0.3",
+    "pytest>=9.0.3,<9.2.0",
 ]
 
 [tool.setuptools.dynamic]
